@@ -1,0 +1,14 @@
+# Node Modules
+node_modules/
+
+# Environment Variables
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor / OS Specific
+.idea/
+.DS_Store
