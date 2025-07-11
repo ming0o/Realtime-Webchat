@@ -38,9 +38,9 @@ const initDatabase = async () => {
     `);
 
         connection.release();
-        console.log('데이터베이스가 정상적으로 초기화되었습니다.');
+        console.log('데이터베이스 테이블이 정상적으로 생성되었습니다.');
     } catch (error) {
-        console.error('데이터베이스 초기화 실패:', error.message);
+        console.error('데이터베이스 테이블 생성 실패:', error.message);
         throw error;
     }
 };
