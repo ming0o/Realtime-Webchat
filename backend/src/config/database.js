@@ -9,10 +9,7 @@ const dbConfig = {
     database: process.env.DB_NAME || 'realtime_webchat',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0,
-    acquireTimeout: 60000,
-    timeout: 60000,
-    reconnect: true
+    queueLimit: 0
 };
 
 const pool = mysql.createPool(dbConfig);

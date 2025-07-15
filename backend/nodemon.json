@@ -1,6 +1,10 @@
 {
-  "watch": ["src"],
-  "ignore": ["node_modules"],
+  "watch": [
+    "src"
+  ],
+  "ignore": [
+    "node_modules"
+  ],
   "ext": "js",
-  "exec": "node src/app.js"
+  "exec": "node src/server.js"
 }
