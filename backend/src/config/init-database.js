@@ -66,4 +66,4 @@ const initDatabase = async () => {
   }
 };
 
-module.exports = initDatabase; 
+module.exports = { initDatabase }; 
