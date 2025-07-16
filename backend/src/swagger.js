@@ -52,6 +52,27 @@ const options = {
                         read: { type: "boolean" },
                         created_at: { type: "string", format: "date-time" }
                     }
+                },
+                Macro: {
+                    type: "object",
+                    properties: {
+                        macroType: { type: "string", enum: ["off-hours", "lunch-time", "holiday"] },
+                        message: { type: "string" },
+                        timestamp: { type: "string", format: "date-time" }
+                    }
+                },
+                MacroTemplate: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer" },
+                        macro_type: { type: "string", enum: ["off-hours", "lunch-time", "holiday"] },
+                        name: { type: "string" },
+                        description: { type: "string" },
+                        content: { type: "string" },
+                        is_active: { type: "boolean" },
+                        created_at: { type: "string", format: "date-time" },
+                        updated_at: { type: "string", format: "date-time" }
+                    }
                 }
             }
         }
