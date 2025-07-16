@@ -1,5 +1,6 @@
 # Realtime Webchat Support
 
+KDT - 구름X한국핀테크지원협회 주관 핀테크 인턴십 풀스택 개발자 과정입니다.
 실시간 웹·앱 연동 채팅 지원 서비스 개발 저장소
 
 ## 🗂️ Directory
