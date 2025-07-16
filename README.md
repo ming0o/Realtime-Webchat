@@ -16,6 +16,6 @@
 
 ## 🛠️ Stack
 - **Backend**: Node.js, Express, Socket.IO, MySQL
-- **Mobile**: React Native (Original CLI), TypeScript
-- **Web**: Next.js, Zustand, TypeScript
+- **Mobile**: React Native (Original CLI), NativeWind, TypeScript
+- **Web**: Next.js, Tailwind, Zustand, TypeScript
 - **Database**: MySQL
