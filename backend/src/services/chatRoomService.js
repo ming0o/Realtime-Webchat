@@ -7,7 +7,16 @@ class ChatRoomService {
                 'INSERT INTO chat_rooms (user_id) VALUES (?)',
                 [userId]
             );
-            return result.insertId;
+
+            // 생성된 채팅방 정보 조회
+            const [rows] = await pool.execute(`
+                SELECT cr.*, u.nickname, u.social_type 
+                FROM chat_rooms cr 
+                JOIN users u ON cr.user_id = u.id 
+                WHERE cr.id = ?
+            `, [result.insertId]);
+
+            return rows[0];
         } catch (error) {
             console.error('Error creating chat room:', error);
             throw error;

@@ -22,6 +22,51 @@ const messageService = require("../services/messageServiceMongo");
  *       500:
  *         description: 서버 오류
  */
+/**
+ * @swagger
+ * /api/chat-rooms:
+ *   post:
+ *     summary: 채팅방 생성
+ *     description: 새로운 채팅방을 생성합니다.
+ *     tags: [ChatRooms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 description: 사용자 ID
+ *     responses:
+ *       201:
+ *         description: 채팅방 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ChatRoom'
+ *       500:
+ *         description: 서버 오류
+ */
+// 채팅방 생성
+router.post("/", async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: "userId는 필수입니다." });
+        }
+
+        const chatRoom = await chatRoomService.createChatRoom(userId);
+        res.status(201).json(chatRoom);
+    } catch (error) {
+        console.error('채팅방 생성 실패:', error);
+        res.status(500).json({ error: "채팅방 생성 실패" });
+    }
+});
+
 // 채팅방 목록 조회
 router.get("/", async (req, res) => {
     try {

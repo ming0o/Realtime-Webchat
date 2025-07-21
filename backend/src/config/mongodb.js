@@ -3,10 +3,7 @@ require('dotenv').config();
 
 const mongoConfig = {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/realtime_webchat',
-    options: {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    }
+    options: {}
 };
 
 const connectMongoDB = async () => {

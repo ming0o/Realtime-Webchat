@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const app = require("./app");
 const { testConnection } = require("./config/database");
 const { initDatabase } = require("./config/init-database");
-const { connectMongoDB, testMongoConnection } = require("./config/mongodb");
+const { connectMongoDB, } = require("./config/mongodb");
 const { setupSocket } = require("./socket");
 
 dotenv.config();
