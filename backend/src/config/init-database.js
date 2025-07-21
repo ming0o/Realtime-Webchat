@@ -24,18 +24,7 @@ const initDatabase = async () => {
       )
     `);
 
-    await connection.execute(`
-        CREATE TABLE IF NOT EXISTS messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        chat_room_id INT NOT NULL,
-        sender_type ENUM('USER', 'ADMIN', 'BOT') NOT NULL,
-        content TEXT NOT NULL,
-        message_type ENUM('TEXT', 'IMAGE', 'FILE') DEFAULT 'TEXT',
-        \`read\` BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (chat_room_id) REFERENCES chat_rooms(id) ON DELETE CASCADE
-      )
-    `);
+
 
     // 매크로 템플릿 테이블 추가
     await connection.execute(`

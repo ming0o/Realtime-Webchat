@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const chatRoomService = require("./services/chatRoomService");
-const messageService = require("./services/messageService");
+const messageService = require("./services/messageServiceMongo");
 
 function setupSocket(server) {
     const io = new Server(server, {

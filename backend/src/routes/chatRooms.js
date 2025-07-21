@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const chatRoomService = require("../services/chatRoomService");
-const messageService = require("../services/messageService");
+const messageService = require("../services/messageServiceMongo");
 
 /**
  * @swagger
