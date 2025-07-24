@@ -19,12 +19,23 @@ const initDatabase = async () => {
         CREATE TABLE IF NOT EXISTS chat_rooms (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        status ENUM('접수', '응대', '종료', '보류') DEFAULT '접수',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
-
+    // 기존 chat_rooms 테이블에 status 컬럼이 없다면 추가
+    try {
+      await connection.execute(`
+        ALTER TABLE chat_rooms 
+        ADD COLUMN status ENUM('접수', '응대', '종료', '보류') DEFAULT '접수'
+      `);
+      console.log('chat_rooms 테이블에 status 컬럼이 추가되었습니다.');
+    } catch (error) {
+      // 컬럼이 이미 존재하는 경우 무시
+      console.log('status 컬럼이 이미 존재합니다.');
+    }
 
     // 매크로 템플릿 테이블 추가
     await connection.execute(`

@@ -1,39 +1,55 @@
 'use client';
 
 import { Message } from '@/types';
-import { User, Bot } from 'lucide-react';
 
 interface ChatMessageProps {
     message: Message;
 }
 
 export default function ChatMessage({ message }: ChatMessageProps) {
-    const isUser = message.sender_type === 'USER';
+    const isOwnMessage = message.sender_type === 'ADMIN';
+    const isBotMessage = message.sender_type === 'BOT';
+
+    const getMessageTime = () => {
+        const date = message.createdAt || message.created_at;
+        if (!date) return '';
+        return new Date(date).toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getSenderName = () => {
+        switch (message.sender_type) {
+            case 'USER': return '고객';
+            case 'ADMIN': return '상담원';
+            case 'BOT': return '시스템';
+            default: return '알 수 없음';
+        }
+    };
+
+    const getMessageStyle = () => {
+        if (isBotMessage) {
+            return 'bg-gray-100 text-gray-700 border border-gray-200';
+        }
+        return isOwnMessage
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-200 text-gray-900';
+    };
 
     return (
-        <div className={`flex ${isUser ? 'justify-start' : 'justify-end'} mb-4`}>
-            <div className={`flex items-start space-x-2 max-w-xs lg:max-w-md ${isUser ? 'flex-row' : 'flex-row-reverse'}`}>
-                {/* 아바타 */}
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-gray-300' : 'bg-blue-500'
-                    }`}>
-                    {isUser ? (
-                        <User className="w-4 h-4 text-gray-600" />
-                    ) : (
-                        <Bot className="w-4 h-4 text-white" />
-                    )}
-                </div>
-
-                {/* 메시지 내용 */}
-                <div className={`flex flex-col ${isUser ? 'items-start' : 'items-end'}`}>
-                    <div className={`px-4 py-2 rounded-lg ${isUser
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'bg-blue-500 text-white'
-                        }`}>
-                        <p className="text-sm">{message.content}</p>
+        <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${getMessageStyle()}`}>
+                {isBotMessage && (
+                    <div className="text-xs text-gray-500 mb-1 font-medium">
+                        {getSenderName()}
                     </div>
-                    <span className="text-xs text-gray-500 mt-1">
-                        {new Date(message.created_at).toLocaleTimeString()}
-                    </span>
+                )}
+                <div className="text-sm whitespace-pre-wrap break-words">
+                    {message.content}
+                </div>
+                <div className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {getMessageTime()}
                 </div>
             </div>
         </div>

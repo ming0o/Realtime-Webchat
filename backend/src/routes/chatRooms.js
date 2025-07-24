@@ -60,6 +60,12 @@ router.post("/", async (req, res) => {
         }
 
         const chatRoom = await chatRoomService.createChatRoom(userId);
+
+        // 새 채팅방 생성 시 관리자에게 알림
+        if (global.io) {
+            global.io.emitNewChatRoom(chatRoom);
+        }
+
         res.status(201).json(chatRoom);
     } catch (error) {
         console.error('채팅방 생성 실패:', error);
@@ -70,7 +76,7 @@ router.post("/", async (req, res) => {
 // 채팅방 목록 조회
 router.get("/", async (req, res) => {
     try {
-        const chatRooms = await chatRoomService.getAllChatRooms();
+        const chatRooms = await chatRoomService.getAllChatRoomsWithDetails();
         res.json(chatRooms);
     } catch (error) {
         res.status(500).json({ error: "채팅방 목록 조회 실패" });
@@ -292,6 +298,68 @@ router.post("/:roomId/connect-agent", async (req, res) => {
         res.json({ success: true, connectionMessage: message });
     } catch (error) {
         res.status(500).json({ error: "상담원 연결 실패" });
+    }
+});
+
+/**
+ * @swagger
+ * /api/chat-rooms/{roomId}/status:
+ *   patch:
+ *     summary: 채팅방 상태 업데이트
+ *     description: 채팅방의 상태를 업데이트합니다.
+ *     tags: [ChatRooms]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 채팅방 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [접수, 응대, 종료, 보류]
+ *                 description: 채팅방 상태
+ *     responses:
+ *       200:
+ *         description: 상태 업데이트 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ChatRoom'
+ *       500:
+ *         description: 서버 오류
+ */
+// 채팅방 상태 업데이트
+router.patch("/:roomId/status", async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ error: "status는 필수입니다." });
+        }
+
+        const updatedChatRoom = await chatRoomService.updateChatRoomStatus(req.params.roomId, status);
+        if (!updatedChatRoom) {
+            return res.status(404).json({ error: "채팅방을 찾을 수 없습니다." });
+        }
+
+        // 상태 변경 시 관리자에게 알림
+        if (global.io) {
+            global.io.emitChatRoomStatusChange(req.params.roomId, status);
+        }
+
+        res.json(updatedChatRoom);
+    } catch (error) {
+        console.error('채팅방 상태 업데이트 실패:', error);
+        res.status(500).json({ error: "채팅방 상태 업데이트 실패" });
     }
 });
 

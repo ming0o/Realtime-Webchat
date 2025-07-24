@@ -21,13 +21,14 @@ export const api = {
             `${API_BASE_URL}/api/messages/${chatRoomId}?limit=${limit}&offset=${offset}`
         );
         if (!response.ok) throw new Error('메시지를 가져오는데 실패했습니다.');
-        return response.json();
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
     },
 
     // 메시지 읽음 표시
     async markMessagesAsRead(chatRoomId: number) {
-        const response = await fetch(`${API_BASE_URL}/api/messages/${chatRoomId}/read`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${chatRoomId}/messages/read`, {
+            method: 'PATCH',
         });
         if (!response.ok) throw new Error('메시지 상태 업데이트에 실패했습니다.');
         return response.json();
@@ -43,6 +44,46 @@ export const api = {
             body: JSON.stringify({ socialType, nickname, socialId, token }),
         });
         if (!response.ok) throw new Error('사용자 생성에 실패했습니다.');
+        return response.json();
+    },
+
+    // 매크로 템플릿 목록 조회
+    async getMacroTemplates() {
+        const response = await fetch(`${API_BASE_URL}/api/macros`);
+        if (!response.ok) throw new Error('매크로 템플릿을 가져오는데 실패했습니다.');
+        return response.json();
+    },
+
+    // 특정 매크로 템플릿 조회
+    async getMacroTemplate(macroType: string) {
+        const response = await fetch(`${API_BASE_URL}/api/macros/${macroType}`);
+        if (!response.ok) throw new Error('매크로 템플릿을 가져오는데 실패했습니다.');
+        return response.json();
+    },
+
+    // 매크로 사용
+    async useMacro(chatRoomId: number, macroType: string) {
+        const response = await fetch(`${API_BASE_URL}/api/macros/${macroType}/use`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ chatRoomId }),
+        });
+        if (!response.ok) throw new Error('매크로 사용에 실패했습니다.');
+        return response.json();
+    },
+
+    // 채팅방 상태 업데이트
+    async updateChatRoomStatus(roomId: number, status: string) {
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${roomId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+        });
+        if (!response.ok) throw new Error('채팅방 상태 업데이트에 실패했습니다.');
         return response.json();
     },
 }; 

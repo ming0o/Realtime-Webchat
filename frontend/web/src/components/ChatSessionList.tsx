@@ -1,149 +1,156 @@
 'use client';
 
-import { useState } from 'react';
-import { ChatSession, SearchFilter } from '@/types';
-import { Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChatRoom } from '@/types';
+import { api } from '@/services/api';
 
 interface ChatSessionListProps {
-    onSelectSession: (session: ChatSession) => void;
+    onSelectSession: (session: ChatRoom) => void;
     selectedSessionId?: number;
 }
 
-const mockSessions: ChatSession[] = [
-    {
-        id: 1,
-        title: '[단순 문의] 뭐 먹을지 물어봤는데 추천이 맘에 안들어요.',
-        author: 'MQEONZE',
-        status: '접수',
-        lastMessage: '오늘 점심 메뉴를 알고 싶어요.',
-        createdAt: '2024-01-15T10:30:00Z'
-    },
-    {
-        id: 2,
-        title: '[오류 발견] 어떻게 되지 않아요 전 분명 명령어를 입력했는데 봇이 먹통이에요.',
-        author: 'MQEONZE',
-        status: '접수',
-        lastMessage: '봇이 응답하지 않아요.',
-        createdAt: '2024-01-15T09:15:00Z'
-    }
-];
-
-const statusColors = {
-    '접수': 'bg-red-100 text-red-800',
-    '응대': 'bg-blue-100 text-blue-800',
-    '종료': 'bg-gray-100 text-gray-800',
-    '보류': 'bg-yellow-100 text-yellow-800'
-};
-
 export default function ChatSessionList({ onSelectSession, selectedSessionId }: ChatSessionListProps) {
-    const [sessions] = useState<ChatSession[]>(mockSessions);
-    const [searchFilter, setSearchFilter] = useState<SearchFilter>({ type: 'content', keyword: '' });
-    const [sortBy, setSortBy] = useState('recent');
+    const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchKeyword, setSearchKeyword] = useState('');
 
-    const filteredSessions = sessions.filter(session => {
-        if (!searchFilter.keyword) return true;
+    useEffect(() => {
+        loadChatRooms();
 
-        if (searchFilter.type === 'content') {
-            return session.title.toLowerCase().includes(searchFilter.keyword.toLowerCase()) ||
-                session.lastMessage?.toLowerCase().includes(searchFilter.keyword.toLowerCase());
-        } else {
-            return session.author.toLowerCase().includes(searchFilter.keyword.toLowerCase());
+        // 30초마다 채팅방 목록 새로고침
+        const interval = setInterval(loadChatRooms, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const loadChatRooms = async () => {
+        try {
+            setLoading(true);
+            const data = await api.getChatRooms();
+            setChatRooms(data);
+            setError(null);
+        } catch (err) {
+            setError('채팅방 목록을 불러오는데 실패했습니다.');
+            console.error('채팅방 목록 로드 실패:', err);
+        } finally {
+            setLoading(false);
         }
-    });
-
-    const sortedSessions = [...filteredSessions].sort((a, b) => {
-        if (sortBy === 'recent') {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }
-        return 0;
-    });
-
-    const statusCounts = {
-        '접수': sessions.filter(s => s.status === '접수').length,
-        '응대': sessions.filter(s => s.status === '응대').length,
-        '종료': sessions.filter(s => s.status === '종료').length,
-        '보류': sessions.filter(s => s.status === '보류').length,
     };
 
-    return (
-        <div className="flex flex-col h-full bg-white">
-            {/* 헤더 */}
-            <div className="p-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">채팅 상담</h2>
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case '접수': return 'bg-yellow-100 text-yellow-800';
+            case '응대': return 'bg-blue-100 text-blue-800';
+            case '종료': return 'bg-gray-100 text-gray-800';
+            case '보류': return 'bg-orange-100 text-orange-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
 
-                {/* 상태 통계 */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                    {Object.entries(statusCounts).map(([status, count]) => (
-                        <div key={status} className="text-center">
-                            <div className={`text-sm font-medium ${statusColors[status as keyof typeof statusColors]}`}>
-                                {status}
-                            </div>
-                            <div className="text-lg font-bold text-gray-900">{count}</div>
-                        </div>
-                    ))}
-                </div>
+    const filteredChatRooms = chatRooms.filter(room =>
+        room.nickname?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        room.last_message?.toLowerCase().includes(searchKeyword.toLowerCase())
+    );
 
-                {/* 검색 필터 */}
-                <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                        <select
-                            value={searchFilter.type}
-                            onChange={(e) => setSearchFilter(prev => ({ ...prev, type: e.target.value as 'content' | 'author' }))}
-                            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                        >
-                            <option value="content">상담 내용</option>
-                            <option value="author">작성자</option>
-                        </select>
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="검색어를 입력하세요"
-                                value={searchFilter.keyword}
-                                onChange={(e) => setSearchFilter(prev => ({ ...prev, keyword: e.target.value }))}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                            />
-                        </div>
-                    </div>
+    if (loading && chatRooms.length === 0) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-gray-500">로딩 중...</div>
+            </div>
+        );
+    }
 
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+    if (error) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-red-500 text-center">
+                    <div>{error}</div>
+                    <button
+                        onClick={loadChatRooms}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
-                        <option value="recent">최근 대화 순</option>
-                    </select>
+                        다시 시도
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-full flex flex-col">
+            {/* 헤더 */}
+            <div className="p-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">채팅 목록</h2>
+
+                {/* 검색 */}
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="고객명 또는 메시지로 검색..."
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                 </div>
             </div>
 
-            {/* 세션 목록 */}
+            {/* 채팅방 목록 */}
             <div className="flex-1 overflow-y-auto">
-                {sortedSessions.map((session) => (
-                    <div
-                        key={session.id}
-                        onClick={() => onSelectSession(session)}
-                        className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${selectedSessionId === session.id ? 'bg-blue-50 border-blue-200' : ''
-                            }`}
-                    >
-                        <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-medium text-gray-900 text-sm line-clamp-2">
-                                {session.title}
-                            </h3>
-                            <span className={`px-2 py-1 text-xs rounded-full ${statusColors[session.status]}`}>
-                                {session.status}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>{session.author}</span>
-                            <span>{new Date(session.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        {session.lastMessage && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-1">
-                                {session.lastMessage}
-                            </p>
-                        )}
+                {filteredChatRooms.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                        {searchKeyword ? '검색 결과가 없습니다.' : '채팅방이 없습니다.'}
                     </div>
-                ))}
+                ) : (
+                    <div className="divide-y divide-gray-200">
+                        {filteredChatRooms.map((room) => (
+                            <div
+                                key={room.id}
+                                onClick={() => onSelectSession(room)}
+                                className={`
+                                    p-4 cursor-pointer transition-colors hover:bg-gray-50
+                                    ${selectedSessionId === room.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''}
+                                `}
+                            >
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium text-gray-900 truncate">
+                                                {room.nickname || '익명'}
+                                            </span>
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(room.status || '접수')}`}>
+                                                {room.status || '접수'}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 truncate">
+                                            {room.last_message || '메시지가 없습니다.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        {room.unread_count && room.unread_count > 0 && (
+                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
+                                                {room.unread_count}
+                                            </span>
+                                        )}
+                                        <span className="text-xs text-gray-400">
+                                            {new Date(room.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* 새로고침 버튼 */}
+            <div className="p-4 border-t border-gray-200">
+                <button
+                    onClick={loadChatRooms}
+                    disabled={loading}
+                    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {loading ? '새로고침 중...' : '새로고침'}
+                </button>
             </div>
         </div>
     );

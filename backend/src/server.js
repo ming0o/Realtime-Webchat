@@ -10,7 +10,10 @@ dotenv.config();
 
 const PORT = process.env.PORT || 8080;
 const server = http.createServer(app);
-setupSocket(server); // socket.io 연결 설정
+const io = setupSocket(server); // socket.io 연결 설정 및 인스턴스 반환
+
+// 전역으로 소켓 인스턴스 사용 가능하도록 설정
+global.io = io;
 
 async function startServer() {
     try {

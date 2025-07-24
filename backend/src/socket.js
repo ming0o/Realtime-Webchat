@@ -38,24 +38,48 @@ function setupSocket(server) {
                 });
 
                 const messageData = {
-                    id: message.id,
-                    chatRoomId,
-                    senderType: senderType || "USER",
+                    _id: message._id,
+                    id: message._id,
+                    chat_room_id: chatRoomId,
+                    sender_type: senderType || "USER",
                     content,
-                    messageType: messageType || "TEXT",
+                    message_type: messageType || "TEXT",
                     read: false,
-                    timestamp: new Date(),
+                    createdAt: message.createdAt,
+                    updatedAt: message.updatedAt,
                     chatRoom,
                 };
 
                 io.to(`room_${chatRoomId}`).emit("user_message", messageData);
-                console.log(`메시지 전송 성공: ID ${message.id}`);
+                console.log(`메시지 전송 성공: ID ${message._id}`);
             } catch (err) {
                 console.error("메시지 전송 오류:", err);
                 socket.emit("error", "메시지 전송 실패");
             }
         });
+
+        // 관리자 전용 이벤트
+        socket.on("admin_join", () => {
+            socket.join("admin_room");
+            console.log(`관리자 ${socket.id} 접속`);
+        });
+
+        socket.on("admin_leave", () => {
+            socket.leave("admin_room");
+            console.log(`관리자 ${socket.id} 퇴장`);
+        });
     });
+
+    // 전역 함수로 소켓 이벤트 발생 함수들 추가
+    io.emitNewChatRoom = (chatRoom) => {
+        io.to("admin_room").emit("new_chat_room", chatRoom);
+    };
+
+    io.emitChatRoomStatusChange = (roomId, status) => {
+        io.to("admin_room").emit("chat_room_status_change", { roomId, status });
+    };
+
+    return io;
 }
 
 module.exports = { setupSocket };
