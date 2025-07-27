@@ -67,6 +67,13 @@ class SocketService {
             this.socket.on('error', callback);
         }
     }
+
+    // Typing indicator 전송
+    sendTyping(chatRoomId: number, userType: 'USER' | 'ADMIN' | 'BOT' = 'USER') {
+        if (this.socket) {
+            this.socket.emit('typing', { chatRoomId, userType });
+        }
+    }
 }
 
 export const socketService = new SocketService(); 

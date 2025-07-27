@@ -14,7 +14,7 @@ export interface Message {
     content: string;
     message_type: 'TEXT' | 'IMAGE' | 'QUICK_REPLY';
     read: boolean;
-    created_at: string;
+    createdAt: string;
     quick_replies?: string[];
 }
 

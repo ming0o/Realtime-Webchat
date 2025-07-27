@@ -66,6 +66,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [chatMode, setChatMode] = useState<ChatMode>('bot');
     const flatListRef = useRef<FlatList>(null);
+    const [isConnected, setIsConnected] = useState(false);
 
     const loadMessages = useCallback(async () => {
         if (!chatRoomId) return;
@@ -91,7 +92,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 content: botResponse.message,
                 message_type: 'QUICK_REPLY',
                 read: false,
-                created_at: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
                 quick_replies: botResponse.suggestions,
             };
             setMessages([initialMessage]);
@@ -104,24 +105,43 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
 
     useEffect(() => {
         if (chatRoomId) {
-            // 소켓 연결
-            socketService.connect();
+            const socket = socketService.connect();
             socketService.joinRoom(chatRoomId);
 
-            // 메시지 수신 리스너
+            const handleConnect = () => {
+                console.log('소켓 연결됨');
+                setIsConnected(true);
+            };
+            const handleDisconnect = () => {
+                console.log('소켓 끊김');
+                setIsConnected(false);
+            };
+
+            socket.on('connect', handleConnect);
+            socket.on('disconnect', handleDisconnect);
+            setIsConnected(socket.connected);
+
             socketService.onMessage((newMessage: Message) => {
+                if (!newMessage.createdAt && (newMessage as any).created_at) {
+                    newMessage.createdAt = (newMessage as any).created_at;
+                }
                 setMessages(prev => [...prev, newMessage]);
             });
 
-            // 기존 메시지 로드
             loadMessages();
 
             return () => {
+                socket.off('connect', handleConnect);
+                socket.off('disconnect', handleDisconnect);
                 socketService.leaveRoom(chatRoomId);
                 socketService.disconnect();
             };
         }
     }, [chatRoomId, loadMessages]);
+
+    useEffect(() => {
+        console.log('isConnected 상태:', isConnected);
+    }, [isConnected]);
 
     const handleQuickReply = async (reply: string) => {
         if (!chatRoomId || isLoading) return;
@@ -134,7 +154,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
             content: reply,
             message_type: 'TEXT',
             read: false,
-            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
         };
         setMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
@@ -150,7 +170,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 content: botResponse.message,
                 message_type: 'QUICK_REPLY',
                 read: false,
-                created_at: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
                 quick_replies: botResponse.suggestions,
             };
 
@@ -175,26 +195,26 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     const sendMessage = async () => {
         if (!inputText.trim() || !chatRoomId || isLoading) return;
 
-        const userMessage: Message = {
-            id: Date.now(),
-            chat_room_id: chatRoomId,
-            sender_type: 'USER',
-            content: inputText.trim(),
-            message_type: 'TEXT',
-            read: false,
-            created_at: new Date().toISOString(),
-        };
-
-        setMessages(prev => [...prev, userMessage]);
         setInputText('');
         setIsLoading(true);
 
         try {
             if (chatMode === 'agent') {
-                // 상담원에게 메시지 전송
+                // 상담원에게 메시지 전송 (setMessages 직접 호출 X)
                 socketService.sendMessage(chatRoomId, inputText.trim());
             } else {
                 // 챗봇 응답
+                const userMessage: Message = {
+                    id: Date.now(),
+                    chat_room_id: chatRoomId,
+                    sender_type: 'USER',
+                    content: inputText.trim(),
+                    message_type: 'TEXT',
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                };
+                setMessages(prev => [...prev, userMessage]);
+
                 const botResponse = await chatApi.getBotResponse(inputText.trim());
 
                 const botMessage: Message = {
@@ -204,7 +224,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                     content: botResponse.message,
                     message_type: 'QUICK_REPLY',
                     read: false,
-                    created_at: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
                     quick_replies: botResponse.suggestions,
                 };
 
@@ -253,9 +273,9 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
             {/* 메시지 목록 */}
             <FlatList
                 ref={flatListRef}
-                data={messages}
+                data={messages.filter(Boolean)}
                 renderItem={renderMessage}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item, index) => (item && item.id !== undefined ? item.id.toString() : `msg-${index}`)}
                 style={styles.messageList}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
                 onLayout={() => flatListRef.current?.scrollToEnd()}
@@ -266,7 +286,13 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 <TextInput
                     style={styles.textInput}
                     value={inputText}
-                    onChangeText={setInputText}
+                    onChangeText={(text) => {
+                        setInputText(text);
+                        // 상담원 모드일 때만 typing 이벤트 전송
+                        if (chatMode === 'agent' && chatRoomId) {
+                            socketService.sendTyping(chatRoomId, 'USER');
+                        }
+                    }}
                     placeholder={chatMode === 'agent' ? "상담원에게 메시지를 입력하세요..." : "메시지를 입력하세요..."}
                     multiline
                     maxLength={500}
