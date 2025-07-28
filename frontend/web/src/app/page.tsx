@@ -10,25 +10,24 @@ export default function Home() {
   const [selectedSession, setSelectedSession] = useState<ChatRoom | null>(null);
 
   useEffect(() => {
-    // 관리자 소켓 연결
     socketService.connect();
     socketService.joinAdmin();
 
-    // 새 채팅방 생성 리스너
-    socketService.onNewChatRoom((newChatRoom: ChatRoom) => {
-      // 새 채팅방이 생성되면 목록을 새로고침하도록 ChatSessionList에 알림
+    const handleNewChatRoom = (newChatRoom: ChatRoom) => {
       console.log('새 채팅방 생성:', newChatRoom);
-    });
+    };
+    socketService.onNewChatRoom(handleNewChatRoom);
 
-    // 채팅방 상태 변경 리스너
-    socketService.onChatRoomStatusChange(({ roomId, status }) => {
-      // 현재 선택된 채팅방의 상태가 변경된 경우
+    const handleStatusChange = ({ roomId, status }: { roomId: number; status: string }) => {
       if (selectedSession?.id === roomId) {
-        setSelectedSession(prev => prev ? { ...prev, status: status as '접수' | '응대' | '종료' | '보류' } : null);
+        setSelectedSession(prev => prev ? { ...prev, status: status as ChatRoom['status'] } : null);
       }
-    });
+    };
+    socketService.onChatRoomStatusChange(handleStatusChange);
 
     return () => {
+      socketService.offNewChatRoom(handleNewChatRoom);
+      socketService.offChatRoomStatusChange(handleStatusChange);
       socketService.leaveAdmin();
       socketService.disconnect();
     };
@@ -39,27 +38,27 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex flex-col h-full bg-gray-100">
       {/* 헤더 */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-black text-white px-4 py-3">
+      <header className="flex-shrink-0 bg-black text-white px-4 py-3 z-10">
         <h1 className="text-xl font-bold">SUPPORT 관리자</h1>
-      </div>
+      </header>
 
       {/* 메인 컨텐츠 */}
-      <div className="flex flex-1 mt-16">
+      <main className="flex flex-1 overflow-hidden">
         {/* 왼쪽 패널 - 채팅 세션 목록 */}
-        <div className="w-80 border-r border-gray-200 bg-white">
+        <aside className="w-80 border-r border-gray-200 bg-white flex flex-col">
           <ChatSessionList
             onSelectSession={handleSelectSession}
             selectedSessionId={selectedSession?.id}
           />
-        </div>
+        </aside>
 
         {/* 오른쪽 패널 - 채팅 영역 */}
-        <div className="flex-1">
+        <section className="flex-1 flex flex-col">
           <ChatArea selectedSessionId={selectedSession?.id} />
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
