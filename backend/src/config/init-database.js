@@ -31,7 +31,6 @@ const initDatabase = async () => {
         ALTER TABLE chat_rooms 
         ADD COLUMN status ENUM('접수', '응대', '종료', '보류') DEFAULT '접수'
       `);
-      console.log('chat_rooms 테이블에 status 컬럼이 추가되었습니다.');
     } catch (error) {
       // 컬럼이 이미 존재하는 경우 무시
       console.log('status 컬럼이 이미 존재합니다.');
@@ -59,7 +58,6 @@ const initDatabase = async () => {
       `);
 
     connection.release();
-    console.log('데이터베이스 테이블이 정상적으로 생성되었습니다.');
   } catch (error) {
     console.error('데이터베이스 테이블 생성 실패:', error.message);
     throw error;

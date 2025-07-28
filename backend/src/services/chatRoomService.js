@@ -19,7 +19,6 @@ class ChatRoomService {
 
             return rows[0];
         } catch (error) {
-            console.error('Error creating chat room:', error);
             throw error;
         }
     }
@@ -34,7 +33,6 @@ class ChatRoomService {
       `, [roomId]);
             return rows[0];
         } catch (error) {
-            console.error('Error getting chat room by ID:', error);
             throw error;
         }
     }
@@ -49,7 +47,6 @@ class ChatRoomService {
       `, [userId]);
             return rows[0];
         } catch (error) {
-            console.error('Error getting chat room by user ID:', error);
             throw error;
         }
     }
@@ -64,7 +61,6 @@ class ChatRoomService {
       `);
             return rows;
         } catch (error) {
-            console.error('Error getting all chat rooms:', error);
             throw error;
         }
     }
@@ -93,7 +89,6 @@ class ChatRoomService {
                             status: chatRoom.status || '접수'
                         };
                     } catch (error) {
-                        console.error(`Error getting details for chat room ${chatRoom.id}:`, error);
                         return {
                             ...chatRoom,
                             unread_count: 0,
@@ -106,7 +101,6 @@ class ChatRoomService {
 
             return chatRoomsWithDetails;
         } catch (error) {
-            console.error('Error getting all chat rooms with details:', error);
             throw error;
         }
     }
@@ -125,7 +119,6 @@ class ChatRoomService {
             // 업데이트된 채팅방 정보 조회
             return await this.getChatRoomById(roomId);
         } catch (error) {
-            console.error('Error updating chat room status:', error);
             throw error;
         }
     }
@@ -135,7 +128,6 @@ class ChatRoomService {
             await pool.execute('DELETE FROM chat_rooms WHERE id = ?', [roomId]);
             return true;
         } catch (error) {
-            console.error('Error deleting chat room:', error);
             throw error;
         }
     }

@@ -9,7 +9,6 @@ class MessageServiceMongo {
                 .lean();
             return messages;
         } catch (error) {
-            console.error('Error getting messages by room ID:', error);
             throw error;
         }
     }
@@ -29,7 +28,6 @@ class MessageServiceMongo {
             const savedMessage = await message.save();
             return savedMessage.toJSON();
         } catch (error) {
-            console.error('Error creating message:', error);
             throw error;
         }
     }
@@ -43,7 +41,6 @@ class MessageServiceMongo {
             );
             return true;
         } catch (error) {
-            console.error('Error marking messages as read:', error);
             throw error;
         }
     }
@@ -54,7 +51,6 @@ class MessageServiceMongo {
             const message = await Message.findById(messageId).lean();
             return message;
         } catch (error) {
-            console.error('Error getting message by ID:', error);
             throw error;
         }
     }
@@ -65,7 +61,6 @@ class MessageServiceMongo {
             const count = await Message.countDocuments({ chat_room_id: chatRoomId });
             return count;
         } catch (error) {
-            console.error('Error getting message count:', error);
             throw error;
         }
     }
@@ -79,7 +74,6 @@ class MessageServiceMongo {
                 .lean();
             return messages;
         } catch (error) {
-            console.error('Error getting recent messages:', error);
             throw error;
         }
     }
@@ -90,7 +84,6 @@ class MessageServiceMongo {
             const result = await Message.findByIdAndDelete(messageId);
             return result;
         } catch (error) {
-            console.error('Error deleting message:', error);
             throw error;
         }
     }

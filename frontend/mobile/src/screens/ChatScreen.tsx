@@ -25,7 +25,6 @@ const chatApi = {
             const response = await api.getMessages(chatRoomId);
             return response;
         } catch (error) {
-            console.error('메시지 로드 실패:', error);
             throw error;
         }
     },
@@ -110,11 +109,9 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
             socketService.joinRoom(chatRoomId);
 
             const handleConnect = () => {
-                console.log('소켓 연결됨');
                 setIsConnected(true);
             };
             const handleDisconnect = () => {
-                console.log('소켓 끊김');
                 setIsConnected(false);
             };
 
@@ -123,17 +120,10 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
             setIsConnected(socket.connected);
 
             socketService.onMessage((newMessage: Message) => {
-                console.log('🔥 모바일: 메시지 수신됨!', newMessage);
-                console.log('🔥 모바일: 메시지 sender_type:', newMessage.sender_type);
-                console.log('🔥 모바일: 메시지 content:', newMessage.content);
-
                 if (!newMessage.createdAt && (newMessage as any).created_at) {
                     newMessage.createdAt = (newMessage as any).created_at;
                 }
-                console.log('🔥 모바일: 메시지 상태에 추가 시도');
                 setMessages(prev => {
-                    console.log('🔥 모바일: 이전 메시지 개수:', prev.length);
-
                     // 중복 메시지 체크 (BOT 메시지는 내용만으로 체크)
                     const isDuplicate = prev.some(msg => {
                         // BOT 메시지인 경우 내용만으로 중복 체크 (상담원 연결 메시지 등)
@@ -150,29 +140,22 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                     });
 
                     if (isDuplicate) {
-                        console.log('🔥 모바일: 중복 메시지 감지! 추가하지 않음');
                         return prev;
                     }
 
-                    const newMessages = [...prev, newMessage];
-                    console.log('🔥 모바일: 새로운 메시지 개수:', newMessages.length);
-                    return newMessages;
+                    return [...prev, newMessage];
                 });
             });
 
             // 타이핑 이벤트 리스너 추가
             socketService.onTyping((data: { chatRoomId: number; userType: string }) => {
-                console.log('🔥 모바일: 타이핑 이벤트 수신', data);
                 if (data.chatRoomId === chatRoomId) {
                     if (data.userType === 'USER' || data.userType === 'ADMIN') {
-                        console.log('🔥 모바일: 상담사 타이핑 시작');
                         setIsTyping(true);
                         setTimeout(() => {
-                            console.log('🔥 모바일: 상담사 타이핑 자동 중단');
                             setIsTyping(false);
                         }, 3000);
                     } else if (data.userType === 'USER_STOP' || data.userType === 'ADMIN_STOP') {
-                        console.log('🔥 모바일: 상담사 타이핑 중단');
                         setIsTyping(false);
                     }
                 }
@@ -190,7 +173,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     }, [chatRoomId, loadMessages]);
 
     useEffect(() => {
-        console.log('isConnected 상태:', isConnected);
+        // Connection status changed
     }, [isConnected]);
 
     const handleQuickReply = async (reply: string) => {
@@ -256,10 +239,8 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
 
         try {
             if (chatMode === 'agent') {
-                console.log('🔥 모바일: 상담원에게 메시지 전송 시도', inputText.trim());
                 // 상담원에게 메시지 전송 (setMessages 직접 호출 X)
                 socketService.sendMessage(chatRoomId, inputText.trim());
-                console.log('🔥 모바일: 메시지 전송 완료');
             } else {
                 // 챗봇 응답
                 const userMessage: Message = {
@@ -360,9 +341,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                         setInputText(text);
                         // 상담원 모드일 때만 typing 이벤트 전송
                         if (chatMode === 'agent' && chatRoomId) {
-                            console.log('🔥 모바일: 타이핑 이벤트 전송 시도', { chatRoomId, userType: 'CLIENT' });
                             socketService.sendTyping(chatRoomId, 'CLIENT');
-                            console.log('🔥 모바일: 타이핑 이벤트 전송 완료');
                         }
                     }}
                     placeholder={chatMode === 'agent' ? "상담원에게 메시지를 입력하세요..." : "메시지를 입력하세요..."}

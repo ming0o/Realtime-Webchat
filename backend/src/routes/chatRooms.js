@@ -68,7 +68,6 @@ router.post("/", async (req, res) => {
 
         res.status(201).json(chatRoom);
     } catch (error) {
-        console.error('채팅방 생성 실패:', error);
         res.status(500).json({ error: "채팅방 생성 실패" });
     }
 });
@@ -309,13 +308,11 @@ router.post("/:roomId/connect-agent", async (req, res) => {
                 createdAt: message.createdAt || new Date().toISOString(),
                 updatedAt: message.updatedAt || new Date().toISOString(),
             };
-            console.log(`상담원 연결 메시지 broadcast: room_${req.params.roomId}`, messageData);
             global.io.to(`room_${req.params.roomId}`).emit('user_message', messageData);
         }
 
         res.json({ success: true, connectionMessage: message });
     } catch (error) {
-        console.error('상담원 연결 실패:', error);
         res.status(500).json({ error: "상담원 연결 실패" });
     }
 });
@@ -377,7 +374,6 @@ router.patch("/:roomId/status", async (req, res) => {
 
         res.json(updatedChatRoom);
     } catch (error) {
-        console.error('채팅방 상태 업데이트 실패:', error);
         res.status(500).json({ error: "채팅방 상태 업데이트 실패" });
     }
 });

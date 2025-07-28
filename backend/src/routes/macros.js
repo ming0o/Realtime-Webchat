@@ -23,7 +23,6 @@ router.get("/:macroType", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("매크로 조회 실패:", error);
         res.status(500).json({ error: "매크로 조회 실패" });
     }
 });
@@ -35,7 +34,6 @@ router.get("/", async (req, res) => {
         res.json({ templates });
 
     } catch (error) {
-        console.error("매크로 목록 조회 실패:", error);
         res.status(500).json({ error: "매크로 목록 조회 실패" });
     }
 });
@@ -54,7 +52,6 @@ router.post("/:macroType/use", async (req, res) => {
         res.json(result);
 
     } catch (error) {
-        console.error("매크로 사용 실패:", error);
         res.status(500).json({ error: error.message || "매크로 사용 실패" });
     }
 });

@@ -20,13 +20,13 @@ class SocketService {
                 forceNew: true
             });
             this.socket.on('connect', () => {
-                console.log('✅ Socket connected:', this.socket?.id);
+                console.log('Socket connected:', this.socket?.id);
             });
             this.socket.on('disconnect', (reason) => {
-                console.log('❌ Socket disconnected:', reason);
+                console.log('Socket disconnected:', reason);
             });
             this.socket.on('connect_error', (error) => {
-                console.error('🔴 Socket connection error:', error);
+                console.error('Socket connection error:', error);
             });
         }
         return this.socket;
@@ -41,11 +41,7 @@ class SocketService {
 
     joinRoom(chatRoomId: number) {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 채팅방 입장 시도', chatRoomId);
             this.socket.emit('join_room', { chatRoomId });
-            console.log('🔥 웹 소켓 서비스: 채팅방 입장 완료', chatRoomId);
-        } else {
-            console.log('🔥 웹 소켓 서비스: 소켓이 연결되지 않음 - 채팅방 입장 실패');
         }
     }
 
@@ -68,25 +64,19 @@ class SocketService {
 
     joinAdmin() {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 관리자 룸 입장 시도');
             this.socket.emit('admin_join');
-            console.log('🔥 웹 소켓 서비스: 관리자 룸 입장 완료');
         }
     }
 
     leaveAdmin() {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 관리자 룸 퇴장 시도');
             this.socket.emit('admin_leave');
-            console.log('🔥 웹 소켓 서비스: 관리자 룸 퇴장 완료');
         }
     }
 
     onMessage(callback: (message: Message) => void) {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 메시지 리스너 등록');
             this.socket.on('user_message', (message) => {
-                console.log('🔥 웹 소켓 서비스: 메시지 이벤트 수신', message);
                 callback(message);
             });
         }
@@ -94,7 +84,6 @@ class SocketService {
 
     offMessage(callback: (message: Message) => void) {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 메시지 리스너 해제');
             this.socket.off('user_message', callback);
         }
     }
@@ -142,15 +131,9 @@ class SocketService {
 
     onTyping(callback: (data: { chatRoomId: number; userType: string }) => void) {
         if (this.socket) {
-            console.log('🔥 웹 소켓 서비스: 타이핑 리스너 등록');
             this.socket.on('typing', (data) => {
-                console.log('🔥🔥🔥 웹 소켓 서비스: 타이핑 이벤트 수신됨!', data);
-                console.log('🔥 웹 소켓 서비스: 콜백 함수 호출 시도');
                 callback(data);
-                console.log('🔥 웹 소켓 서비스: 콜백 함수 호출 완료');
             });
-        } else {
-            console.log('🔥 웹 소켓 서비스: 소켓이 연결되지 않음 - 타이핑 리스너 등록 실패');
         }
     }
 

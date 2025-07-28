@@ -36,7 +36,6 @@ router.get("/:chatRoomId", async (req, res) => {
 
         res.json(messages);
     } catch (error) {
-        console.error("메시지 조회 실패:", error);
         res.status(500).json({ error: "메시지 목록 조회 실패" });
     }
 });

@@ -11,7 +11,6 @@ class MacroService {
             );
             return rows[0];
         } catch (error) {
-            console.error('Error getting macro template:', error);
             throw error;
         }
     }
@@ -24,7 +23,6 @@ class MacroService {
             );
             return rows;
         } catch (error) {
-            console.error('Error getting all macro templates:', error);
             throw error;
         }
     }
@@ -55,7 +53,6 @@ class MacroService {
                 }
             };
         } catch (error) {
-            console.error('Error using macro:', error);
             throw error;
         }
     }

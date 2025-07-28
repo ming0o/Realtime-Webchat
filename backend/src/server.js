@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const app = require("./app");
 const { testConnection } = require("./config/database");
 const { initDatabase } = require("./config/init-database");
-const { connectMongoDB, } = require("./config/mongodb");
+const connectDB = require("./config/mongodb");
 const { setupSocket } = require("./socket");
 
 dotenv.config();
@@ -19,7 +19,7 @@ async function startServer() {
     try {
         await testConnection();
         await initDatabase();
-        await connectMongoDB();
+        await connectDB();
 
         server.listen(PORT, () => {
             console.log(`서버가 http://localhost:${PORT} 에서 실행중입니다.`);
