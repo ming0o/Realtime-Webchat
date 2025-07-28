@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Message, ChatRoom, MacroTemplate } from '@/types';
 import { api } from '@/services/api';
 import { socketService } from '@/services/socket';
@@ -17,120 +15,119 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
     const [loading, setLoading] = useState(false);
     const [chatRoom, setChatRoom] = useState<ChatRoom | null>(null);
     const [macros, setMacros] = useState<MacroTemplate[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const selectedSessionIdRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
-        // 소켓 연결
-        socketService.connect();
-        setIsConnected(socketService.isConnected());
+        selectedSessionIdRef.current = selectedSessionId;
+    }, [selectedSessionId]);
 
-        // 소켓 이벤트 리스너
-        socketService.onMessage((message: Message) => {
-            setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
-        });
 
-        socketService.onError((error: string) => {
-            console.error('Socket error:', error);
-        });
 
-        return () => {
-            socketService.disconnect();
-        };
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isTyping]);
+
+    const loadChatData = useCallback(async (sessionId: number) => {
+        setLoading(true);
+        try {
+            const [roomData, messagesData, macrosData] = await Promise.all([
+                api.getChatRoom(sessionId),
+                api.getMessages(sessionId),
+                api.getMacroTemplates()
+            ]);
+            setChatRoom(roomData);
+            setMessages(Array.isArray(messagesData) ? messagesData : []);
+            setMacros(macrosData);
+            await api.markMessagesAsRead(sessionId);
+        } catch (error) {
+            console.error('채팅 데이터 로드 실패:', error);
+            setChatRoom(null);
+            setMessages([]);
+            setMacros([]);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
         if (selectedSessionId) {
-            loadChatRoom();
-            loadMessages();
-            loadMacros();
+            console.log('🔥 채팅방 변경으로 소켓 리스너 재등록:', selectedSessionId);
 
-            // 이전 채팅방에서 나가기
-            socketService.leaveRoom(selectedSessionId);
-            // 새 채팅방 입장
             socketService.joinRoom(selectedSessionId);
+
+            // 채팅방별로 새로운 메시지 리스너 등록
+            const handleMessage = (newMessage: Message) => {
+                console.log('🔥 ChatArea 메시지 수신:', newMessage);
+                console.log('🔥 현재 채팅방:', selectedSessionId);
+                console.log('🔥 메시지 채팅방:', newMessage.chat_room_id);
+
+                if (newMessage.chat_room_id === selectedSessionId) {
+                    console.log('🔥 메시지 추가!');
+                    setMessages(prev => [...prev, newMessage]);
+                } else {
+                    console.log('🔥 다른 채팅방 메시지 무시');
+                }
+            };
+
+            const handleTyping = (data: { chatRoomId: number; userType: string }) => {
+                console.log('🔥 타이핑 이벤트 수신:', data);
+                if (data.chatRoomId === selectedSessionId && data.userType === 'USER') {
+                    console.log('🔥 타이핑 인디케이터 활성화');
+                    setIsTyping(true);
+                    setTimeout(() => setIsTyping(false), 3000);
+                }
+            };
+
+            socketService.onMessage(handleMessage);
+            socketService.onTyping(handleTyping);
+
+            loadChatData(selectedSessionId);
+
+            return () => {
+                console.log('🔥 소켓 리스너 해제:', selectedSessionId);
+                socketService.offMessage(handleMessage);
+                socketService.offTyping(handleTyping);
+                socketService.leaveRoom(selectedSessionId);
+            };
         } else {
-            setMessages([]);
             setChatRoom(null);
+            setMessages([]);
         }
-    }, [selectedSessionId]);
+    }, [selectedSessionId, loadChatData]);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
 
-    const loadChatRoom = async () => {
-        if (!selectedSessionId) return;
+    const handleSendMessage = (content: string, type: 'TEXT' | 'MACRO' = 'TEXT') => {
+        if (!content.trim() || !selectedSessionId) return;
 
-        try {
-            const data = await api.getChatRoom(selectedSessionId);
-            setChatRoom(data);
-        } catch (error) {
-            console.error('채팅방 정보 로드 실패:', error);
-        }
-    };
+        const senderType = type === 'MACRO' ? 'BOT' : 'ADMIN';
 
-    const loadMessages = async () => {
-        if (!selectedSessionId) return;
+        socketService.sendMessage(selectedSessionId, content, senderType);
 
-        try {
-            setLoading(true);
-            const data = await api.getMessages(selectedSessionId);
-            setMessages(Array.isArray(data) ? data : []);
-
-            // 메시지 읽음 처리
-            await api.markMessagesAsRead(selectedSessionId);
-        } catch (error) {
-            setMessages([]); // 에러 시에도 빈 배열로
-            console.error('메시지 로드 실패:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadMacros = async () => {
-        try {
-            const data = await api.getMacroTemplates();
-            setMacros(data);
-        } catch (error) {
-            console.error('매크로 템플릿 로드 실패:', error);
-        }
-    };
-
-    const handleSendMessage = async () => {
-        if (!inputMessage.trim() || !selectedSessionId) return;
-
-        try {
-            const message = inputMessage.trim();
-            setInputMessage('');
-
-            // 소켓으로 메시지 전송
-            socketService.sendMessage(selectedSessionId, message, 'ADMIN');
-
-            // 로컬 메시지 추가 (즉시 표시)
+        if (senderType === 'ADMIN') {
             const newMessage: Message = {
                 chat_room_id: selectedSessionId,
                 sender_type: 'ADMIN',
-                content: message,
+                content: content,
                 message_type: 'TEXT',
                 read: true,
                 createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
             };
-
             setMessages(prev => [...prev, newMessage]);
-        } catch (error) {
-            console.error('메시지 전송 실패:', error);
+            setInputMessage('');
         }
     };
 
-    const handleUseMacro = async (macroType: string) => {
+    const handleUseMacro = async (macro: MacroTemplate) => {
         if (!selectedSessionId) return;
-
+        handleSendMessage(macro.content, 'MACRO');
         try {
-            await api.useMacro(selectedSessionId, macroType);
-            // 매크로 사용 후 메시지 목록 새로고침
-            loadMessages();
+            await api.useMacro(selectedSessionId, macro.macro_type);
         } catch (error) {
             console.error('매크로 사용 실패:', error);
         }
@@ -138,29 +135,24 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
 
     const handleStatusChange = async (newStatus: string) => {
         if (!selectedSessionId || !chatRoom) return;
-
         try {
-            await api.updateChatRoomStatus(selectedSessionId, newStatus);
-            setChatRoom(prev => prev ? { ...prev, status: newStatus as '접수' | '응대' | '종료' | '보류' } : null);
+            const updatedChatRoom = await api.updateChatRoomStatus(selectedSessionId, newStatus);
+            setChatRoom(updatedChatRoom);
         } catch (error) {
             console.error('상태 변경 실패:', error);
         }
     };
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSendMessage();
+            handleSendMessage(inputMessage);
         }
     };
 
     if (!selectedSessionId) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="flex-1 flex items-center justify-center bg-gray-50 h-full">
                 <div className="text-center text-gray-500">
                     <div className="text-2xl mb-2">💬</div>
                     <p>채팅방을 선택해주세요</p>
@@ -170,52 +162,40 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex flex-col h-full bg-white">
             {/* 채팅방 헤더 */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <header className="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div>
-                            <h3 className="font-semibold text-gray-900">
-                                {chatRoom?.nickname || '익명'}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                                {chatRoom?.social_type === 'GUEST' ? '게스트' : '카카오'} •
-                                {new Date(chatRoom?.created_at || '').toLocaleDateString()}
-                            </p>
-                        </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-900">{chatRoom?.nickname || '익명'}</h3>
+                        <p className="text-sm text-gray-500">
+                            {chatRoom?.social_type === 'GUEST' ? '게스트' : '카카오'} • {chatRoom?.created_at ? new Date(chatRoom.created_at).toLocaleString() : ''}
+                        </p>
                     </div>
-
                     <div className="flex items-center gap-2">
                         <select
                             value={chatRoom?.status || '접수'}
                             onChange={(e) => handleStatusChange(e.target.value)}
-                            className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="px-3 py-1 text-sm border border-gray-300 rounded-md"
                         >
                             <option value="접수">접수</option>
                             <option value="응대">응대</option>
                             <option value="종료">종료</option>
                             <option value="보류">보류</option>
                         </select>
-
-                        <div className="flex items-center gap-1">
-                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                            <span className="text-xs text-gray-500">
-                                {isConnected ? '연결됨' : '연결 끊김'}
-                            </span>
-                        </div>
+                        <div className={`w-2 h-2 rounded-full ${socketService.isConnected() ? 'bg-green-500' : 'bg-red-500'}`} />
                     </div>
                 </div>
-            </div>
+            </header>
 
             {/* 매크로 버튼 */}
-            <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex-shrink-0 p-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex gap-2">
-                    {macros.map((macro) => (
+                    {Array.isArray(macros) && macros.map(macro => (
                         <MacroButton
                             key={macro.id}
                             macro={macro}
-                            onUseMacro={handleUseMacro}
+                            onUseMacro={() => handleUseMacro(macro)}
                             disabled={!selectedSessionId}
                         />
                     ))}
@@ -223,49 +203,50 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
             </div>
 
             {/* 메시지 영역 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <main className="flex-1 overflow-y-auto p-4 space-y-4">
                 {loading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="text-gray-500">메시지를 불러오는 중...</div>
-                    </div>
-                ) : !Array.isArray(messages) || messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="text-center text-gray-500">
-                            <div className="text-2xl mb-2">💬</div>
-                            <p>아직 메시지가 없습니다</p>
-                        </div>
-                    </div>
+                    <div className="flex items-center justify-center h-full text-gray-500">로딩 중...</div>
                 ) : (
-                    messages.map((message, index) => (
+                    Array.isArray(messages) && messages.map((message, index) => (
                         <ChatMessage
-                            key={message._id || message.id || index}
+                            key={`msg-${message._id || message.id || index}`}
                             message={message}
                         />
                     ))
                 )}
+                {isTyping && (
+                    <div className="flex items-center gap-2 text-gray-500 text-sm">
+                        <div className="flex gap-1">
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                        </div>
+                        <span>상대방이 입력중...</span>
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
-            </div>
+            </main>
 
             {/* 입력 영역 */}
-            <div className="p-4 border-t border-gray-200">
+            <footer className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
                 <div className="flex gap-2">
                     <textarea
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder="메시지를 입력하세요..."
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg resize-none"
                         rows={3}
                     />
                     <button
-                        onClick={handleSendMessage}
+                        onClick={() => handleSendMessage(inputMessage)}
                         disabled={!inputMessage.trim()}
-                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed self-end"
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300"
                     >
                         전송
                     </button>
                 </div>
-            </div>
+            </footer>
         </div>
     );
 } 

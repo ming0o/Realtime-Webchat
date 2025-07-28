@@ -14,16 +14,18 @@ function setupSocket(server) {
 
         socket.on("join_room", ({ chatRoomId }) => {
             socket.join(`room_${chatRoomId}`);
-            console.log(`클라이언트 ${socket.id}가 채팅방 ${chatRoomId}에 참여함`);
+            console.log(`소켓 ${socket.id}가 room_${chatRoomId}에 입장`);
         });
 
         socket.on("leave_room", ({ chatRoomId }) => {
             socket.leave(`room_${chatRoomId}`);
-            console.log(`클라이언트 ${socket.id}가 채팅방 ${chatRoomId}에서 나감`);
+            console.log(`소켓 ${socket.id}가 room_${chatRoomId}에서 나감`);
         });
 
         socket.on("user_message", async ({ chatRoomId, senderType, content, messageType }) => {
             try {
+                console.log(`user_message 수신: chatRoomId=${chatRoomId}, senderType=${senderType}, content=${content}`);
+
                 const chatRoom = await chatRoomService.getChatRoomById(chatRoomId);
                 if (!chatRoom) {
                     socket.emit("error", `채팅방 ${chatRoomId}를 찾을 수 없습니다.`);
@@ -50,6 +52,7 @@ function setupSocket(server) {
                     chatRoom,
                 };
 
+                console.log(`room_${chatRoomId}에 메시지 broadcast:`, messageData);
                 io.to(`room_${chatRoomId}`).emit("user_message", messageData);
                 console.log(`메시지 전송 성공: ID ${message._id}`);
             } catch (err) {
@@ -67,6 +70,13 @@ function setupSocket(server) {
         socket.on("admin_leave", () => {
             socket.leave("admin_room");
             console.log(`관리자 ${socket.id} 퇴장`);
+        });
+
+        // Typing indicator 이벤트
+        socket.on("typing", ({ chatRoomId, userType }) => {
+            console.log(`typing 이벤트 수신: chatRoomId=${chatRoomId}, userType=${userType}`);
+            // 같은 방에 있는 다른 사람들에게만 broadcast (자신 제외)
+            socket.to(`room_${chatRoomId}`).emit("typing", { chatRoomId, userType });
         });
     });
 
