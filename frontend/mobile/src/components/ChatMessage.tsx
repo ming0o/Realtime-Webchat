@@ -9,6 +9,29 @@ interface ChatMessageProps {
 export default function ChatMessage({ message }: ChatMessageProps) {
     const isUser = message.sender_type === 'USER';
     const isBot = message.sender_type === 'BOT';
+    const isAdmin = message.sender_type === 'ADMIN';
+
+    // 시간 포맷 함수 (Invalid Date 방지, createdAt이 없으면 현재 시간 사용)
+    const getMessageTime = () => {
+        let dateStr = message.createdAt;
+        if (!dateStr) {
+            // fallback: 메시지에 createdAt이 없으면 현재 시간 사용
+            dateStr = new Date().toISOString();
+        }
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    // 안내 메시지(상담원 연결 등)도 잘 보이도록
+    const getSenderLabel = () => {
+        if (isBot) return '챗봇';
+        if (isAdmin) return '상담원';
+        return '';
+    };
 
     return (
         <View style={[
@@ -19,8 +42,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 styles.messageBubble,
                 isUser ? styles.userBubble : isBot ? styles.botBubble : styles.adminBubble
             ]}>
-                {isBot && (
-                    <Text style={styles.botLabel}>챗봇</Text>
+                {getSenderLabel() !== '' && (
+                    <Text style={styles.botLabel}>{getSenderLabel()}</Text>
                 )}
                 <Text style={[
                     styles.messageText,
@@ -29,10 +52,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     {message.content}
                 </Text>
                 <Text style={styles.timestamp}>
-                    {new Date(message.created_at).toLocaleTimeString('ko-KR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    })}
+                    {getMessageTime()}
                 </Text>
             </View>
         </View>
