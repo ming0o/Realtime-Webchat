@@ -295,8 +295,27 @@ router.post("/:roomId/connect-agent", async (req, res) => {
             content: "상담원이 연결되었습니다. 잠시만 기다려 주세요.",
             message_type: "TEXT",
         });
+
+        // 소켓으로 메시지 broadcast
+        if (global.io) {
+            const messageData = {
+                _id: message._id,
+                id: message._id,
+                chat_room_id: req.params.roomId,
+                sender_type: "BOT",
+                content: "상담원이 연결되었습니다. 잠시만 기다려 주세요.",
+                message_type: "TEXT",
+                read: false,
+                createdAt: message.createdAt || new Date().toISOString(),
+                updatedAt: message.updatedAt || new Date().toISOString(),
+            };
+            console.log(`상담원 연결 메시지 broadcast: room_${req.params.roomId}`, messageData);
+            global.io.to(`room_${req.params.roomId}`).emit('user_message', messageData);
+        }
+
         res.json({ success: true, connectionMessage: message });
     } catch (error) {
+        console.error('상담원 연결 실패:', error);
         res.status(500).json({ error: "상담원 연결 실패" });
     }
 });

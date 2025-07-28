@@ -11,25 +11,22 @@ class SocketService {
             if (this.socket) {
                 this.socket.disconnect();
             }
-
             this.socket = io(SOCKET_URL, {
                 autoConnect: true,
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionAttempts: 5,
-                timeout: 5000
+                timeout: 5000,
+                forceNew: true
             });
-
             this.socket.on('connect', () => {
-                console.log('소켓이 연결되었습니다!:', this.socket?.id);
+                console.log('✅ Socket connected:', this.socket?.id);
             });
-
             this.socket.on('disconnect', (reason) => {
-                console.log('소켓 연결 실패:', reason);
+                console.log('❌ Socket disconnected:', reason);
             });
-
             this.socket.on('connect_error', (error) => {
-                console.error('소켓 연결 에러:', error);
+                console.error('🔴 Socket connection error:', error);
             });
         }
         return this.socket;
@@ -44,7 +41,11 @@ class SocketService {
 
     joinRoom(chatRoomId: number) {
         if (this.socket) {
+            console.log('🔥 웹 소켓 서비스: 채팅방 입장 시도', chatRoomId);
             this.socket.emit('join_room', { chatRoomId });
+            console.log('🔥 웹 소켓 서비스: 채팅방 입장 완료', chatRoomId);
+        } else {
+            console.log('🔥 웹 소켓 서비스: 소켓이 연결되지 않음 - 채팅방 입장 실패');
         }
     }
 
@@ -67,24 +68,33 @@ class SocketService {
 
     joinAdmin() {
         if (this.socket) {
+            console.log('🔥 웹 소켓 서비스: 관리자 룸 입장 시도');
             this.socket.emit('admin_join');
+            console.log('🔥 웹 소켓 서비스: 관리자 룸 입장 완료');
         }
     }
 
     leaveAdmin() {
         if (this.socket) {
+            console.log('🔥 웹 소켓 서비스: 관리자 룸 퇴장 시도');
             this.socket.emit('admin_leave');
+            console.log('🔥 웹 소켓 서비스: 관리자 룸 퇴장 완료');
         }
     }
 
     onMessage(callback: (message: Message) => void) {
         if (this.socket) {
-            this.socket.on('user_message', callback);
+            console.log('🔥 웹 소켓 서비스: 메시지 리스너 등록');
+            this.socket.on('user_message', (message) => {
+                console.log('🔥 웹 소켓 서비스: 메시지 이벤트 수신', message);
+                callback(message);
+            });
         }
     }
 
     offMessage(callback: (message: Message) => void) {
         if (this.socket) {
+            console.log('🔥 웹 소켓 서비스: 메시지 리스너 해제');
             this.socket.off('user_message', callback);
         }
     }
@@ -124,7 +134,7 @@ class SocketService {
     }
 
     // Typing indicator 관련 메서드들
-    sendTyping(chatRoomId: number, userType: 'USER' | 'ADMIN' | 'BOT' = 'ADMIN') {
+    sendTyping(chatRoomId: number, userType: 'USER' | 'ADMIN' | 'BOT' | 'CLIENT' | 'USER_STOP' | 'CLIENT_STOP' = 'ADMIN') {
         if (this.socket) {
             this.socket.emit('typing', { chatRoomId, userType });
         }
@@ -132,7 +142,15 @@ class SocketService {
 
     onTyping(callback: (data: { chatRoomId: number; userType: string }) => void) {
         if (this.socket) {
-            this.socket.on('typing', callback);
+            console.log('🔥 웹 소켓 서비스: 타이핑 리스너 등록');
+            this.socket.on('typing', (data) => {
+                console.log('🔥🔥🔥 웹 소켓 서비스: 타이핑 이벤트 수신됨!', data);
+                console.log('🔥 웹 소켓 서비스: 콜백 함수 호출 시도');
+                callback(data);
+                console.log('🔥 웹 소켓 서비스: 콜백 함수 호출 완료');
+            });
+        } else {
+            console.log('🔥 웹 소켓 서비스: 소켓이 연결되지 않음 - 타이핑 리스너 등록 실패');
         }
     }
 

@@ -10,6 +10,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     const isUser = message.sender_type === 'USER';
     const isBot = message.sender_type === 'BOT';
     const isAdmin = message.sender_type === 'ADMIN';
+    const isSystem = message.sender_type === 'SYSTEM';
 
     // 시간 포맷 함수 (Invalid Date 방지, createdAt이 없으면 현재 시간 사용)
     const getMessageTime = () => {
@@ -30,24 +31,29 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     const getSenderLabel = () => {
         if (isBot) return '챗봇';
         if (isAdmin) return '상담원';
+        if (isSystem) return '시스템';
         return '';
     };
 
     return (
         <View style={[
             styles.container,
-            isUser ? styles.userContainer : styles.otherContainer
+            isUser ? styles.userContainer : isSystem ? styles.systemContainer : styles.otherContainer
         ]}>
             <View style={[
                 styles.messageBubble,
-                isUser ? styles.userBubble : isBot ? styles.botBubble : styles.adminBubble
+                isUser ? styles.userBubble :
+                    isBot ? styles.botBubble :
+                        isAdmin ? styles.adminBubble :
+                            isSystem ? styles.systemBubble : styles.botBubble
             ]}>
                 {getSenderLabel() !== '' && (
                     <Text style={styles.botLabel}>{getSenderLabel()}</Text>
                 )}
                 <Text style={[
                     styles.messageText,
-                    isUser ? styles.userText : styles.otherText
+                    isUser ? styles.userText :
+                        isSystem ? styles.systemText : styles.otherText
                 ]}>
                     {message.content}
                 </Text>
@@ -70,6 +76,9 @@ const styles = StyleSheet.create({
     otherContainer: {
         alignItems: 'flex-start',
     },
+    systemContainer: {
+        alignItems: 'center', // 시스템 메시지는 가운데 정렬
+    },
     messageBubble: {
         maxWidth: '80%',
         padding: 12,
@@ -84,6 +93,9 @@ const styles = StyleSheet.create({
     adminBubble: {
         backgroundColor: '#34C759',
     },
+    systemBubble: {
+        backgroundColor: '#E0E0E0', // 시스템 메시지에 대한 배경색
+    },
     messageText: {
         fontSize: 16,
         lineHeight: 20,
@@ -93,6 +105,9 @@ const styles = StyleSheet.create({
     },
     otherText: {
         color: '#000000',
+    },
+    systemText: {
+        color: '#8E8E93', // 시스템 메시지 텍스트 색상
     },
     timestamp: {
         fontSize: 12,

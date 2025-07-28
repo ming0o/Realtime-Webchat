@@ -10,7 +10,7 @@ export interface User {
 export interface Message {
     id: number;
     chat_room_id: number;
-    sender_type: 'USER' | 'ADMIN' | 'BOT';
+    sender_type: 'USER' | 'ADMIN' | 'BOT' | 'SYSTEM';
     content: string;
     message_type: 'TEXT' | 'IMAGE' | 'QUICK_REPLY';
     read: boolean;

@@ -47,8 +47,8 @@ function setupSocket(server) {
                     content,
                     message_type: messageType || "TEXT",
                     read: false,
-                    createdAt: message.createdAt,
-                    updatedAt: message.updatedAt,
+                    createdAt: message.createdAt || new Date().toISOString(),
+                    updatedAt: message.updatedAt || new Date().toISOString(),
                     chatRoom,
                 };
 
@@ -75,8 +75,17 @@ function setupSocket(server) {
         // Typing indicator 이벤트
         socket.on("typing", ({ chatRoomId, userType }) => {
             console.log(`typing 이벤트 수신: chatRoomId=${chatRoomId}, userType=${userType}`);
+
+            // 유효한 userType인지 확인
+            const validUserTypes = ['USER', 'ADMIN', 'BOT', 'CLIENT', 'USER_STOP', 'CLIENT_STOP'];
+            if (!validUserTypes.includes(userType)) {
+                console.log(`잘못된 userType: ${userType}`);
+                return;
+            }
+
             // 같은 방에 있는 다른 사람들에게만 broadcast (자신 제외)
             socket.to(`room_${chatRoomId}`).emit("typing", { chatRoomId, userType });
+            console.log(`typing 이벤트 broadcast 완료: room_${chatRoomId}에 ${userType} 전송`);
         });
     });
 

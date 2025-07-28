@@ -5,10 +5,10 @@ import {
     TextInput,
     TouchableOpacity,
     FlatList,
-    StyleSheet,
     Alert,
     KeyboardAvoidingView,
     Platform,
+    StyleSheet,
     ScrollView,
 } from 'react-native';
 import { Message, ChatMode } from '../types';
@@ -65,6 +65,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [chatMode, setChatMode] = useState<ChatMode>('bot');
+    const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -122,10 +123,59 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
             setIsConnected(socket.connected);
 
             socketService.onMessage((newMessage: Message) => {
+                console.log('🔥 모바일: 메시지 수신됨!', newMessage);
+                console.log('🔥 모바일: 메시지 sender_type:', newMessage.sender_type);
+                console.log('🔥 모바일: 메시지 content:', newMessage.content);
+
                 if (!newMessage.createdAt && (newMessage as any).created_at) {
                     newMessage.createdAt = (newMessage as any).created_at;
                 }
-                setMessages(prev => [...prev, newMessage]);
+                console.log('🔥 모바일: 메시지 상태에 추가 시도');
+                setMessages(prev => {
+                    console.log('🔥 모바일: 이전 메시지 개수:', prev.length);
+
+                    // 중복 메시지 체크 (BOT 메시지는 내용만으로 체크)
+                    const isDuplicate = prev.some(msg => {
+                        // BOT 메시지인 경우 내용만으로 중복 체크 (상담원 연결 메시지 등)
+                        if (newMessage.sender_type === 'BOT' || msg.sender_type === 'BOT') {
+                            return msg.content === newMessage.content &&
+                                Math.abs(new Date(msg.createdAt || '').getTime() - new Date(newMessage.createdAt || '').getTime()) < 1000;
+                        }
+
+                        // 일반 메시지는 기존 로직
+                        return msg.id === newMessage.id ||
+                            (msg.content === newMessage.content &&
+                                msg.sender_type === newMessage.sender_type &&
+                                Math.abs(new Date(msg.createdAt || '').getTime() - new Date(newMessage.createdAt || '').getTime()) < 1000);
+                    });
+
+                    if (isDuplicate) {
+                        console.log('🔥 모바일: 중복 메시지 감지! 추가하지 않음');
+                        return prev;
+                    }
+
+                    const newMessages = [...prev, newMessage];
+                    console.log('🔥 모바일: 새로운 메시지 개수:', newMessages.length);
+                    return newMessages;
+                });
+            });
+
+            // 타이핑 이벤트 리스너 추가
+            socketService.onTyping((data: { chatRoomId: number; userType: string }) => {
+                console.log('🔥 모바일: 타이핑 이벤트 수신', data);
+                if (data.chatRoomId === chatRoomId) {
+                    if (data.userType === 'USER' || data.userType === 'ADMIN') {
+                        console.log('🔥 모바일: 상담사 타이핑 시작');
+                        setIsTyping(true);
+                        setTimeout(() => {
+                            console.log('🔥 모바일: 상담사 타이핑 자동 중단');
+                            setIsTyping(false);
+                        }, 3000);
+                    } else if (data.userType === 'USER_STOP' || data.userType === 'ADMIN_STOP') {
+                        console.log('🔥 모바일: 상담사 타이핑 중단');
+                        setIsTyping(false);
+                    }
+                }
             });
 
             loadMessages();
@@ -198,10 +248,18 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
         setInputText('');
         setIsLoading(true);
 
+        // 메시지 전송 시 타이핑 중단
+        if (chatMode === 'agent') {
+            // 타이핑 중단 이벤트 전송 (서버에서 타이핑 상태를 false로 설정)
+            socketService.sendTyping(chatRoomId, 'CLIENT_STOP');
+        }
+
         try {
             if (chatMode === 'agent') {
+                console.log('🔥 모바일: 상담원에게 메시지 전송 시도', inputText.trim());
                 // 상담원에게 메시지 전송 (setMessages 직접 호출 X)
                 socketService.sendMessage(chatRoomId, inputText.trim());
+                console.log('🔥 모바일: 메시지 전송 완료');
             } else {
                 // 챗봇 응답
                 const userMessage: Message = {
@@ -281,6 +339,18 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 onLayout={() => flatListRef.current?.scrollToEnd()}
             />
 
+            {/* 타이핑 인디케이터 */}
+            {isTyping && (
+                <View style={styles.typingIndicator}>
+                    <View style={styles.typingDots}>
+                        <View style={[styles.dot, styles.dot1]} />
+                        <View style={[styles.dot, styles.dot2]} />
+                        <View style={[styles.dot, styles.dot3]} />
+                    </View>
+                    <Text style={styles.typingText}>상담사가 입력중...</Text>
+                </View>
+            )}
+
             {/* 입력 영역 */}
             <View style={styles.inputContainer}>
                 <TextInput
@@ -290,7 +360,9 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                         setInputText(text);
                         // 상담원 모드일 때만 typing 이벤트 전송
                         if (chatMode === 'agent' && chatRoomId) {
-                            socketService.sendTyping(chatRoomId, 'USER');
+                            console.log('🔥 모바일: 타이핑 이벤트 전송 시도', { chatRoomId, userType: 'CLIENT' });
+                            socketService.sendTyping(chatRoomId, 'CLIENT');
+                            console.log('🔥 모바일: 타이핑 이벤트 전송 완료');
                         }
                     }}
                     placeholder={chatMode === 'agent' ? "상담원에게 메시지를 입력하세요..." : "메시지를 입력하세요..."}
@@ -374,5 +446,37 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
+    },
+    typingIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: '#E0E0E0',
+        borderBottomWidth: 1,
+        borderBottomColor: '#D1D1D6',
+    },
+    typingDots: {
+        flexDirection: 'row',
+        marginRight: 8,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#007AFF',
+    },
+    dot1: {
+        marginRight: 4,
+    },
+    dot2: {
+        marginRight: 4,
+    },
+    dot3: {
+        marginRight: 0,
+    },
+    typingText: {
+        fontSize: 14,
+        color: '#333333',
     },
 }); 
