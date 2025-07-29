@@ -9,13 +9,11 @@ import {
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
-    ScrollView,
 } from 'react-native';
 import { Message, ChatMode } from '../types';
 import { api } from '../services/api';
 import { socketService } from '../services/socket';
 import ChatMessage from '../components/ChatMessage';
-import QuickReplyButton from '../components/QuickReplyButton';
 
 // API 호출 함수들을 분리
 const chatApi = {
@@ -278,22 +276,10 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     };
 
     const renderMessage = ({ item }: { item: Message }) => (
-        <View>
-            <ChatMessage message={item} />
-            {item.quick_replies && item.quick_replies.length > 0 && (
-                <View style={styles.quickReplyContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {item.quick_replies.map((reply, index) => (
-                            <QuickReplyButton
-                                key={index}
-                                text={reply}
-                                onPress={() => handleQuickReply(reply)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
-        </View>
+        <ChatMessage
+            message={item}
+            onQuickReply={handleQuickReply}
+        />
     );
 
     return (

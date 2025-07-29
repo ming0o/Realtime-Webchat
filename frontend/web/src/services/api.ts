@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const api = {
     // 채팅방 목록 조회
@@ -18,7 +18,7 @@ export const api = {
     // 메시지 목록 조회
     async getMessages(chatRoomId: number, limit = 50, offset = 0) {
         const response = await fetch(
-            `${API_BASE_URL}/api/messages/${chatRoomId}?limit=${limit}&offset=${offset}`
+            `${API_BASE_URL}/api/chat-rooms/${chatRoomId}/messages?limit=${limit}&offset=${offset}`
         );
         if (!response.ok) throw new Error('메시지를 가져오는데 실패했습니다.');
         const data = await response.json();

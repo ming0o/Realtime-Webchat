@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Message } from '../types';
+import QuickReplyButton from './QuickReplyButton';
 
 interface ChatMessageProps {
     message: Message;
+    onQuickReply?: (reply: string) => void;
 }
 
-export default function ChatMessage({ message }: ChatMessageProps) {
+export default function ChatMessage({ message, onQuickReply }: ChatMessageProps) {
     const isUser = message.sender_type === 'USER';
     const isBot = message.sender_type === 'BOT';
     const isAdmin = message.sender_type === 'ADMIN';
@@ -61,6 +63,19 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     {getMessageTime()}
                 </Text>
             </View>
+
+            {/* QuickReply 버튼들 렌더링 */}
+            {isBot && message.quick_replies && message.quick_replies.length > 0 && onQuickReply && (
+                <View style={styles.quickReplyContainer}>
+                    {message.quick_replies.map((reply, index) => (
+                        <QuickReplyButton
+                            key={index}
+                            text={reply}
+                            onPress={() => onQuickReply(reply)}
+                        />
+                    ))}
+                </View>
+            )}
         </View>
     );
 }
@@ -119,5 +134,11 @@ const styles = StyleSheet.create({
         color: '#8E8E93',
         marginBottom: 4,
         fontWeight: '500',
+    },
+    quickReplyContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: 8,
+        justifyContent: 'flex-start',
     },
 }); 

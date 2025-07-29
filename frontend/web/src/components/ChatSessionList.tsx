@@ -33,7 +33,10 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
                     ? {
                         ...room,
                         last_message: message.content,
-                        unread_count: (room.unread_count || 0) + 1
+                        // 현재 활성화된 채팅방이면 unread_count를 증가시키지 않음
+                        unread_count: selectedSessionId === message.chat_room_id
+                            ? room.unread_count || 0
+                            : (room.unread_count || 0) + 1
                     }
                     : room
             ));
@@ -55,10 +58,6 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
         ) : [],
         [chatRooms, searchKeyword]
     );
-
-    useEffect(() => {
-        console.log('filteredChatRooms 상태:', filteredChatRooms, Array.isArray(filteredChatRooms));
-    }, [filteredChatRooms]);
 
     const loadChatRooms = async () => {
         try {
@@ -137,14 +136,16 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
                                 </span>
                                 <span className="font-medium text-gray-900">{room.nickname || '익명'}</span>
                             </div>
-                            {room.unread_count && room.unread_count > 0 && (
-                                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                                    {room.unread_count}
-                                </span>
-                            )}
+                            {(() => {
+                                const unreadCount = room.unread_count || 0;
+                                return unreadCount > 0 ? (
+                                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                        {unreadCount}
+                                    </span>
+                                ) : null;
+                            })()}
                         </div>
                         <div className="text-sm text-gray-600 truncate">{room.last_message || '메시지가 없습니다'}</div>
-                        <div className="text-xs text-gray-400 mt-1">{room.created_at}</div>
                     </div>
                 ))}
             </div>

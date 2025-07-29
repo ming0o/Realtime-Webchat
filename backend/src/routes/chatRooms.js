@@ -148,9 +148,11 @@ router.get("/:roomId", async (req, res) => {
 // 특정 채팅방의 메시지 조회
 router.get("/:roomId/messages", async (req, res) => {
     try {
-        const messages = await messageService.getMessagesByRoomId(req.params.roomId);
+        const roomId = req.params.roomId;
+        const messages = await messageService.getMessagesByRoomId(roomId);
         res.json(messages);
     } catch (error) {
+        console.error('❌ chatRooms.js - 메시지 조회 실패:', error);
         res.status(500).json({ error: "메시지 조회 실패" });
     }
 });

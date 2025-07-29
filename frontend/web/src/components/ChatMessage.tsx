@@ -38,7 +38,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     };
 
     return (
-        <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-3`}>
             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${getMessageStyle()}`}>
                 {isBotMessage && (
                     <div className="text-xs text-gray-500 mb-1 font-medium">

@@ -86,13 +86,7 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
 
                             const uniqueMessages = Array.isArray(messagesData) ?
                                 messagesData.filter((msg, index, arr) =>
-                                    arr.findIndex(m =>
-                                        m._id === msg._id ||
-                                        m.id === msg.id ||
-                                        (m.content === msg.content &&
-                                            m.sender_type === msg.sender_type &&
-                                            Math.abs(new Date(m.createdAt || '').getTime() - new Date(msg.createdAt || '').getTime()) < 1000)
-                                    ) === index
+                                    arr.findIndex(m => m._id === msg._id) === index
                                 ) : [];
 
                             setMessages(uniqueMessages);
