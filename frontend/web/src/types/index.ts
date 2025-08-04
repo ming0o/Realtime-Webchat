@@ -50,10 +50,12 @@ export interface SearchFilter {
 
 export interface MacroTemplate {
     id: number;
-    macro_type: 'off-hours' | 'lunch-time' | 'holiday';
+    macro_type: string;
     name: string;
     description: string;
     content: string;
+    sender_type: 'BOT' | 'ADMIN';
+    category: string;
     is_active: boolean;
     created_at: string;
     updated_at: string;

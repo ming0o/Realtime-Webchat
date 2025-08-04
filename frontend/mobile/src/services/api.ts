@@ -20,7 +20,6 @@ export const api = {
             if (!response.ok) throw new Error('사용자 생성에 실패했습니다.');
             return response.json();
         } catch (error) {
-            console.error('API Error:', error);
             throw error;
         }
     },
@@ -39,7 +38,6 @@ export const api = {
             if (!response.ok) throw new Error('채팅방 생성에 실패했습니다.');
             return response.json();
         } catch (error) {
-            console.error('API Error:', error);
             throw error;
         }
     },
@@ -51,7 +49,6 @@ export const api = {
             if (!response.ok) throw new Error('메시지를 가져오는데 실패했습니다.');
             return response.json();
         } catch (error) {
-            console.error('API Error:', error);
             throw error;
         }
     },
@@ -99,7 +96,6 @@ export const api = {
             if (!response.ok) throw new Error('상담원 연결 요청에 실패했습니다.');
             return response.json();
         } catch (error) {
-            console.error('API Error:', error);
             throw error;
         }
     },

@@ -152,7 +152,7 @@ router.get("/:roomId/messages", async (req, res) => {
         const messages = await messageService.getMessagesByRoomId(roomId);
         res.json(messages);
     } catch (error) {
-        console.error('❌ chatRooms.js - 메시지 조회 실패:', error);
+        console.error('chatRooms.js - 메시지 조회 실패:', error);
         res.status(500).json({ error: "메시지 조회 실패" });
     }
 });
@@ -377,6 +377,84 @@ router.patch("/:roomId/status", async (req, res) => {
         res.json(updatedChatRoom);
     } catch (error) {
         res.status(500).json({ error: "채팅방 상태 업데이트 실패" });
+    }
+});
+
+/**
+ * @swagger
+ * /api/chat-rooms/bulk-status:
+ *   patch:
+ *     summary: 채팅방 일괄 상태 업데이트
+ *     description: 여러 채팅방의 상태를 일괄적으로 업데이트합니다.
+ *     tags: [ChatRooms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roomIds
+ *               - status
+ *             properties:
+ *               roomIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: 업데이트할 채팅방 ID 목록
+ *               status:
+ *                 type: string
+ *                 enum: [접수, 응대, 종료, 보류]
+ *                 description: 변경할 상태
+ *     responses:
+ *       200:
+ *         description: 일괄 상태 업데이트 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: 처리 성공 여부
+ *                 updatedCount:
+ *                   type: integer
+ *                   description: 업데이트된 채팅방 수
+ *       400:
+ *         description: 잘못된 요청
+ *       500:
+ *         description: 서버 오류
+ */
+// 채팅방 일괄 상태 업데이트
+router.patch("/bulk-status", async (req, res) => {
+    try {
+        const { roomIds, status } = req.body;
+
+        if (!roomIds || !Array.isArray(roomIds) || roomIds.length === 0) {
+            return res.status(400).json({ error: "roomIds는 필수이며 배열이어야 합니다." });
+        }
+
+        if (!status) {
+            return res.status(400).json({ error: "status는 필수입니다." });
+        }
+
+        const updatedCount = await chatRoomService.updateBulkChatRoomStatus(roomIds, status);
+
+        // 상태 변경 시 관리자에게 알림
+        if (global.io) {
+            roomIds.forEach(roomId => {
+                global.io.emitChatRoomStatusChange(roomId, status);
+            });
+        }
+
+        res.json({
+            success: true,
+            updatedCount,
+            message: `${updatedCount}개의 채팅방 상태가 변경되었습니다.`
+        });
+    } catch (error) {
+        console.error('일괄 상태 업데이트 실패:', error);
+        res.status(500).json({ error: "채팅방 일괄 상태 업데이트 실패" });
     }
 });
 

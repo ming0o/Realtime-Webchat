@@ -51,7 +51,8 @@ export const api = {
     async getMacroTemplates() {
         const response = await fetch(`${API_BASE_URL}/api/macros`);
         if (!response.ok) throw new Error('매크로 템플릿을 가져오는데 실패했습니다.');
-        return response.json();
+        const data = await response.json();
+        return data.templates || [];
     },
 
     // 특정 매크로 템플릿 조회
@@ -84,6 +85,19 @@ export const api = {
             body: JSON.stringify({ status }),
         });
         if (!response.ok) throw new Error('채팅방 상태 업데이트에 실패했습니다.');
+        return response.json();
+    },
+
+    // 채팅방 일괄 상태 업데이트
+    async updateBulkChatRoomStatus(roomIds: number[], status: string) {
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/bulk-status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ roomIds, status }),
+        });
+        if (!response.ok) throw new Error('채팅방 일괄 상태 업데이트에 실패했습니다.');
         return response.json();
     },
 }; 

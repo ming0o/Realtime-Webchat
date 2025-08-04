@@ -123,6 +123,25 @@ class ChatRoomService {
         }
     }
 
+    async updateBulkChatRoomStatus(roomIds, status) {
+        try {
+            if (!Array.isArray(roomIds) || roomIds.length === 0) {
+                throw new Error('roomIds는 필수이며 배열이어야 합니다.');
+            }
+
+            // IN 절을 사용하여 일괄 업데이트
+            const placeholders = roomIds.map(() => '?').join(',');
+            const [result] = await pool.execute(
+                `UPDATE chat_rooms SET status = ? WHERE id IN (${placeholders})`,
+                [status, ...roomIds]
+            );
+
+            return result.affectedRows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     async deleteChatRoom(roomId) {
         try {
             await pool.execute('DELETE FROM chat_rooms WHERE id = ?', [roomId]);
