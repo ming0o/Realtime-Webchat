@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8080';
+import { getApiUrl, API_CONFIG } from '../config/constants';
+
+const API_BASE_URL = getApiUrl();
 
 export const api = {
     // 사용자 생성 (게스트 로그인)
@@ -53,38 +55,39 @@ export const api = {
         }
     },
 
-    // 챗봇 응답 요청 (시뮬레이션)
+    // 챗봇 응답 요청
     async getBotResponse(userMessage: string): Promise<{ message: string; suggestions?: string[] }> {
-        // 실제로는 AI 서비스나 챗봇 API를 호출
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 지연
+        try {
+            // 타임아웃 설정
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
-        // 사용자 메시지에 따른 응답
-        if (userMessage.includes('버그') || userMessage.includes('오류')) {
+            const response = await fetch(`${API_BASE_URL}/api/chat-rooms/bot-response`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userMessage }),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) throw new Error('챗봇 응답 요청에 실패했습니다.');
+
+            const data = await response.json();
+            return data;
+        } catch (error: any) {
+            console.error('챗봇 응답 실패:', error);
+            if (error.name === 'AbortError') {
+                console.error('API 요청 타임아웃');
+            }
+            // 에러 발생 시 기본 응답 반환
             return {
-                message: '버그 신고는 아래 양식을 통해 남겨주세요. 이메일: support@yourapp.com',
-                suggestions: ['처음으로']
+                message: '안녕하세요! 안내 챗봇입니다. 무엇을 도와드릴까요?',
+                suggestions: ['버그 신고', '전화번호 안내', '상담원 연결']
             };
         }
-
-        if (userMessage.includes('전화번호') || userMessage.includes('연락처')) {
-            return {
-                message: '고객센터 전화번호는 1588-1234입니다. 평일 오전 9시~오후 6시까지 운영됩니다.',
-                suggestions: ['처음으로']
-            };
-        }
-
-        if (userMessage.includes('상담원') || userMessage.includes('연결')) {
-            return {
-                message: '산업안전 보건법에 따른 고객응대 근로자 보호 조치가 시행되고 있습니다. 폭언 및 욕설 시 상담 진행이 어렵습니다. 상담원을 연결해 드리겠습니다. 잠시만 기다려 주세요. 업무시간은 평일 오전 9시~오후 6시입니다. 감사합니다.',
-                suggestions: []
-            };
-        }
-
-        // 기본 응답
-        return {
-            message: '안녕하세요. 안내 챗봇입니다. 도움이 필요하신가요?',
-            suggestions: ['버그 신고', '전화번호 안내', '상담원 연결']
-        };
     },
 
     // 상담원 연결 요청

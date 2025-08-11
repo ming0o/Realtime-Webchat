@@ -69,7 +69,7 @@ export const api = {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ chatRoomId }),
+            body: JSON.stringify({ chatRoomId, usedBy: 'ADMIN' }),
         });
         if (!response.ok) throw new Error('매크로 사용에 실패했습니다.');
         return response.json();

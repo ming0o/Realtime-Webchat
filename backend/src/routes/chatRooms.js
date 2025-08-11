@@ -458,4 +458,88 @@ router.patch("/bulk-status", async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/chat-rooms/bot-response:
+ *   post:
+ *     summary: 챗봇 응답 요청
+ *     description: 사용자 메시지에 대한 챗봇 응답을 생성합니다.
+ *     tags: [ChatRooms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userMessage
+ *             properties:
+ *               userMessage:
+ *                 type: string
+ *                 description: 사용자 메시지
+ *     responses:
+ *       200:
+ *         description: 챗봇 응답 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: 챗봇 응답 메시지
+ *                 suggestions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: 추천 응답 옵션들
+ *       500:
+ *         description: 서버 오류
+ */
+// 챗봇 응답 요청
+router.post("/bot-response", async (req, res) => {
+    try {
+        const { userMessage } = req.body;
+
+        // 빈 메시지이거나 초기 메시지인 경우 기본 응답
+        if (!userMessage || userMessage.trim() === '') {
+            return res.json({
+                message: '안녕하세요! 안내 챗봇입니다. 무엇을 도와드릴까요?',
+                suggestions: ['버그 신고', '전화번호 안내', '상담원 연결']
+            });
+        }
+
+        // 사용자 메시지에 따른 응답
+        if (userMessage.includes('버그') || userMessage.includes('오류')) {
+            return res.json({
+                message: '버그 신고는 아래 양식을 통해 남겨주세요. 이메일: support@yourapp.com',
+                suggestions: ['처음으로']
+            });
+        }
+
+        if (userMessage.includes('전화번호') || userMessage.includes('연락처')) {
+            return res.json({
+                message: '고객센터 전화번호는 1588-1234입니다. 평일 오전 9시~오후 6시까지 운영됩니다.',
+                suggestions: ['처음으로']
+            });
+        }
+
+        if (userMessage.includes('상담원') || userMessage.includes('연결')) {
+            return res.json({
+                message: '산업안전 보건법에 따른 고객응대 근로자 보호 조치가 시행되고 있습니다. 폭언 및 욕설 시 상담 진행이 어렵습니다. 상담원을 연결해 드리겠습니다. 잠시만 기다려 주세요. 업무시간은 평일 오전 9시~오후 6시입니다. 감사합니다.',
+                suggestions: []
+            });
+        }
+
+        // 기본 응답
+        return res.json({
+            message: '안녕하세요. 안내 챗봇입니다. 도움이 필요하신가요?',
+            suggestions: ['버그 신고', '전화번호 안내', '상담원 연결']
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: "챗봇 응답 생성 실패" });
+    }
+});
+
 module.exports = router;

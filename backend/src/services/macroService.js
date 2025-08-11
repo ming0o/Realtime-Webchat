@@ -62,10 +62,13 @@ class MacroService {
                 throw new Error(`매크로 타입 '${macroType}'을 찾을 수 없습니다.`);
             }
 
+            // 상담사가 매크로를 사용할 때는 sender_type을 ADMIN으로 설정
+            const senderType = usedBy === 'ADMIN' ? 'ADMIN' : template.sender_type;
+
             // MongoDB에 메시지 생성
             const message = await messageService.createMessage({
                 chat_room_id: chatRoomId,
-                sender_type: template.sender_type,
+                sender_type: senderType,
                 content: template.content,
                 message_type: 'TEXT'
             });
@@ -76,7 +79,7 @@ class MacroService {
                 template: {
                     name: template.name,
                     description: template.description,
-                    sender_type: template.sender_type
+                    sender_type: senderType
                 }
             };
         } catch (error) {

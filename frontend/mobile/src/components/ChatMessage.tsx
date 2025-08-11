@@ -37,79 +37,156 @@ export default function ChatMessage({ message, onQuickReply }: ChatMessageProps)
         return '';
     };
 
+    // 프로필 이미지 또는 아이콘 렌더링
+    const renderProfile = () => {
+        if (isUser) return null; // 사용자 메시지는 프로필 없음
+
+        return (
+            <View style={[
+                styles.profileContainer,
+                isBot ? styles.botProfile : styles.adminProfile
+            ]}>
+                {isBot ? (
+                    <View style={styles.botIcon}>
+                        <Text style={styles.botIconText}>🤖</Text>
+                    </View>
+                ) : isAdmin ? (
+                    <View style={styles.adminIcon}>
+                        <Text style={styles.adminIconText}>👤</Text>
+                    </View>
+                ) : null}
+            </View>
+        );
+    };
+
     return (
         <View style={[
             styles.container,
             isUser ? styles.userContainer : isSystem ? styles.systemContainer : styles.otherContainer
         ]}>
-            <View style={[
-                styles.messageBubble,
-                isUser ? styles.userBubble :
-                    isBot ? styles.botBubble :
-                        isAdmin ? styles.adminBubble :
-                            isSystem ? styles.systemBubble : styles.botBubble
-            ]}>
-                {getSenderLabel() !== '' && (
-                    <Text style={styles.botLabel}>{getSenderLabel()}</Text>
-                )}
-                <Text style={[
-                    styles.messageText,
-                    isUser ? styles.userText :
-                        isSystem ? styles.systemText : styles.otherText
-                ]}>
-                    {message.content}
-                </Text>
-                <Text style={styles.timestamp}>
-                    {getMessageTime()}
-                </Text>
-            </View>
+            {/* 프로필 이미지 (봇/상담원만) */}
+            {!isUser && !isSystem && renderProfile()}
 
-            {/* QuickReply 버튼들 렌더링 */}
-            {isBot && message.quick_replies && message.quick_replies.length > 0 && onQuickReply && (
-                <View style={styles.quickReplyContainer}>
-                    {message.quick_replies.map((reply, index) => (
-                        <QuickReplyButton
-                            key={index}
-                            text={reply}
-                            onPress={() => onQuickReply(reply)}
-                        />
-                    ))}
+            <View style={styles.messageContentContainer}>
+                <View style={[
+                    styles.messageBubble,
+                    isUser ? styles.userBubble :
+                        isBot ? styles.botBubble :
+                            isAdmin ? styles.adminBubble :
+                                isSystem ? styles.systemBubble : styles.botBubble
+                ]}>
+                    {getSenderLabel() !== '' && (
+                        <Text style={[
+                            styles.senderLabel,
+                            isBot ? styles.botLabel : styles.adminLabel
+                        ]}>
+                            {getSenderLabel()}
+                        </Text>
+                    )}
+                    <Text style={[
+                        styles.messageText,
+                        isUser ? styles.userText :
+                            isSystem ? styles.systemText : styles.otherText
+                    ]}>
+                        {message.content}
+                    </Text>
+                    <Text style={styles.timestamp}>
+                        {getMessageTime()}
+                    </Text>
                 </View>
-            )}
+
+                {/* QuickReply 버튼들 렌더링 - 메시지 말풍선 밑에 위치 */}
+                {isBot && message.quick_replies && message.quick_replies.length > 0 && onQuickReply && (
+                    <View style={styles.quickReplyContainer}>
+                        {message.quick_replies.map((reply, index) => (
+                            <QuickReplyButton
+                                key={index}
+                                text={reply}
+                                onPress={() => onQuickReply(reply)}
+                            />
+                        ))}
+                    </View>
+                )}
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        marginVertical: 16,
+        marginVertical: 8,
         paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    messageContentContainer: {
+        flex: 1,
+        flexDirection: 'column',
     },
     userContainer: {
+        justifyContent: 'flex-end',
         alignItems: 'flex-end',
     },
     otherContainer: {
-        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
     },
     systemContainer: {
-        alignItems: 'center', // 시스템 메시지는 가운데 정렬
+        justifyContent: 'center', // 시스템 메시지는 가운데 정렬
+        flexDirection: 'column',
+    },
+    profileContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        marginRight: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    botProfile: {
+        backgroundColor: '#E3F2FD',
+    },
+    adminProfile: {
+        backgroundColor: '#E8F5E8',
+    },
+    botIcon: {
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    adminIcon: {
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    botIconText: {
+        fontSize: 16,
+    },
+    adminIconText: {
+        fontSize: 16,
     },
     messageBubble: {
-        maxWidth: '80%',
+        maxWidth: '75%',
         padding: 12,
         borderRadius: 16,
+        flex: 1,
     },
     userBubble: {
         backgroundColor: '#007AFF',
+        marginLeft: 'auto',
     },
     botBubble: {
         backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
     },
     adminBubble: {
         backgroundColor: '#34C759',
     },
     systemBubble: {
         backgroundColor: '#E0E0E0', // 시스템 메시지에 대한 배경색
+        maxWidth: '90%',
     },
     messageText: {
         fontSize: 16,
@@ -129,11 +206,16 @@ const styles = StyleSheet.create({
         color: '#8E8E93',
         marginTop: 4,
     },
-    botLabel: {
+    senderLabel: {
         fontSize: 12,
-        color: '#8E8E93',
         marginBottom: 4,
-        fontWeight: '500',
+        fontWeight: '600',
+    },
+    botLabel: {
+        color: '#1976D2',
+    },
+    adminLabel: {
+        color: '#2E7D32',
     },
     quickReplyContainer: {
         flexDirection: 'row',

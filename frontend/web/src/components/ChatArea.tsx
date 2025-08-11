@@ -122,31 +122,30 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
         }
     }, [selectedSessionId]);
 
-    const handleSendMessage = (content: string, type: 'TEXT' | 'MACRO' = 'TEXT') => {
+    const handleSendMessage = (content: string) => {
         if (!content.trim() || !selectedSessionId) return;
 
-        const senderType = type === 'MACRO' ? 'BOT' : 'ADMIN';
+        // 매크로든 일반 메시지든 상담사가 보내는 것은 모두 ADMIN으로 설정
+        const senderType = 'ADMIN';
 
         socketService.sendMessage(selectedSessionId, content, senderType);
 
-        if (senderType === 'ADMIN') {
-            const newMessage: Message = {
-                chat_room_id: selectedSessionId,
-                sender_type: 'ADMIN',
-                content: content,
-                message_type: 'TEXT',
-                read: true,
-                createdAt: new Date().toISOString(),
-            };
-            setMessages(prev => [...prev, newMessage]);
-            setInputMessage('');
-        }
+        const newMessage: Message = {
+            chat_room_id: selectedSessionId,
+            sender_type: 'ADMIN',
+            content: content,
+            message_type: 'TEXT',
+            read: true,
+            createdAt: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, newMessage]);
+        setInputMessage('');
     };
 
     const handleUseMacro = async (macroType: string) => {
         const macro = macros.find(m => m.macro_type === macroType);
         if (macro) {
-            handleSendMessage(macro.content, 'MACRO');
+            handleSendMessage(macro.content);
             try {
                 await api.useMacro(selectedSessionId!, macro.macro_type);
             } catch (error) {

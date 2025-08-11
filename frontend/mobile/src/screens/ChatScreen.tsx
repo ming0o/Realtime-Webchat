@@ -65,6 +65,7 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const loadMessages = useCallback(async () => {
         if (!chatRoomId) return;
@@ -82,24 +83,42 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
         const initializeChat = async () => {
             if (!chatRoomId) return;
 
-            const botResponse = await chatApi.getBotResponse('');
-            const initialMessage: Message = {
-                id: Date.now(),
-                chat_room_id: chatRoomId,
-                sender_type: 'BOT',
-                content: botResponse.message,
-                message_type: 'QUICK_REPLY',
-                read: false,
-                createdAt: new Date().toISOString(),
-                quick_replies: botResponse.suggestions,
-            };
-            setMessages([initialMessage]);
+            try {
+                const botResponse = await chatApi.getBotResponse('');
+
+                const initialMessage: Message = {
+                    id: Date.now(),
+                    chat_room_id: chatRoomId,
+                    sender_type: 'BOT',
+                    content: botResponse.message,
+                    message_type: 'QUICK_REPLY',
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                    quick_replies: botResponse.suggestions,
+                };
+                setMessages([initialMessage]);
+            } catch (error) {
+                console.error('초기 메시지 로드 실패:', error);
+                // 에러 발생 시 기본 메시지 표시
+                const fallbackMessage: Message = {
+                    id: Date.now(),
+                    chat_room_id: chatRoomId,
+                    sender_type: 'BOT',
+                    content: '안녕하세요! 안내 챗봇입니다. 무엇을 도와드릴까요?',
+                    message_type: 'QUICK_REPLY',
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                    quick_replies: ['버그 신고', '전화번호 안내', '상담원 연결'],
+                };
+                setMessages([fallbackMessage]);
+            }
+            setIsInitialized(true);
         };
 
-        if (chatRoomId && messages.length === 0) {
+        if (chatRoomId && !isInitialized) {
             initializeChat();
         }
-    }, [chatRoomId, messages.length]);
+    }, [chatRoomId, isInitialized]);
 
     useEffect(() => {
         if (chatRoomId) {
@@ -159,7 +178,8 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 }
             });
 
-            loadMessages();
+            // 새로운 채팅방의 경우 기존 메시지가 없으므로 loadMessages 호출하지 않음
+            // loadMessages();
 
             return () => {
                 socket.off('connect', handleConnect);
@@ -173,6 +193,8 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
     useEffect(() => {
         // Connection status changed
     }, [isConnected]);
+
+
 
     const handleQuickReply = async (reply: string) => {
         if (!chatRoomId || isLoading) return;
