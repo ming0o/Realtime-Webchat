@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Message, ChatRoom, MacroTemplate } from '@/types';
+import { Message, ChatRoom, MacroTemplate, AIRecommendation } from '@/types';
 import { api } from '@/services/api';
 import { socketService } from '@/services/socket';
 import ChatMessage from './ChatMessage';
-import { Plus, X } from 'lucide-react';
+import AIRecommendations from './AIRecommendations';
+import { Plus, X, BotMessageSquare, ChevronDown } from 'lucide-react';
 
 interface ChatAreaProps {
     selectedSessionId?: number;
@@ -17,6 +18,8 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
     const [macros, setMacros] = useState<MacroTemplate[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [showMacros, setShowMacros] = useState(false);
+    const [showAIRecommendations, setShowAIRecommendations] = useState(false);
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedSessionIdRef = useRef<number | undefined>(undefined);
 
@@ -31,6 +34,21 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isTyping]);
+
+    // 드롭다운 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.status-dropdown')) {
+                setShowStatusDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         if (selectedSessionId) {
@@ -154,6 +172,20 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
         }
     };
 
+    const handleUseAIRecommendation = (recommendation: AIRecommendation) => {
+        if (recommendation.type === 'macro') {
+            // 매크로 사용
+            handleUseMacro(recommendation.content);
+        } else if (recommendation.type === 'custom') {
+            // AI 생성 답변 사용
+            handleSendMessage(recommendation.content);
+        } else if (recommendation.type === 'transfer') {
+            // 이관 처리 (추후 구현)
+            console.log('이관 처리:', recommendation.content);
+        }
+        setShowAIRecommendations(false);
+    };
+
     const toggleMacros = () => {
         console.log('매크로 토글 클릭됨');
         console.log('현재 showMacros:', showMacros);
@@ -254,17 +286,59 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                        <select
-                            value={chatRoom?.status || '접수'}
-                            onChange={(e) => handleStatusChange(e.target.value)}
-                            className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm hover:shadow-md transition-all duration-200"
-                        >
-                            <option value="접수">대기중</option>
-                            <option value="응대">활성</option>
-                            <option value="종료">종료</option>
-                            <option value="보류">보류</option>
-                        </select>
+                    <div className="flex items-center space-x-2">
+                        <div className="relative status-dropdown">
+                            <button
+                                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                                className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                            >
+                                <span>{getStatusText(chatRoom?.status || '접수')}</span>
+                                <ChevronDown className="w-4 h-4 text-slate-500" />
+                            </button>
+
+                            {showStatusDropdown && (
+                                <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 min-w-full">
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => {
+                                                handleStatusChange('접수');
+                                                setShowStatusDropdown(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                        >
+                                            대기중
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleStatusChange('응대');
+                                                setShowStatusDropdown(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                        >
+                                            활성
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleStatusChange('종료');
+                                                setShowStatusDropdown(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                        >
+                                            종료
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleStatusChange('보류');
+                                                setShowStatusDropdown(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                        >
+                                            보류
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -300,13 +374,25 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
                 <div className="max-w-4xl mx-auto">
                     <div className="flex space-x-3">
                         <div className="relative">
-                            <button
-                                onClick={toggleMacros}
-                                className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center flex-shrink-0"
-                                title={showMacros ? '매크로 숨기기' : '매크로 보기'}
-                            >
-                                {showMacros ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={toggleMacros}
+                                    className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center flex-shrink-0"
+                                    title={showMacros ? '매크로 숨기기' : '매크로 보기'}
+                                >
+                                    {showMacros ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                </button>
+                                <button
+                                    onClick={() => setShowAIRecommendations(!showAIRecommendations)}
+                                    className={`w-12 h-12 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center flex-shrink-0 ${showAIRecommendations
+                                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700'
+                                        : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
+                                        }`}
+                                    title={showAIRecommendations ? 'AI 추천 숨기기' : 'AI 답변 추천'}
+                                >
+                                    <BotMessageSquare className="w-5 h-5" />
+                                </button>
+                            </div>
 
                             {/* Macro Dropdown */}
                             {showMacros && (
@@ -380,6 +466,16 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
                                     )}
                                 </div>
                             )}
+
+                            {/* AI Recommendations */}
+                            {showAIRecommendations && selectedSessionId && (
+                                <div className="absolute bottom-full right-0 mb-2 w-96 bg-white rounded-xl shadow-xl border border-slate-200 p-4 max-h-96 overflow-y-auto z-50">
+                                    <AIRecommendations
+                                        chatRoomId={selectedSessionId}
+                                        onUseRecommendation={handleUseAIRecommendation}
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="flex-1 relative">
                             <textarea
@@ -387,7 +483,7 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
                                 onChange={(e) => setInputMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="메시지를 입력하세요..."
-                                className="w-full resize-none border border-slate-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm hover:shadow-md transition-all duration-200"
+                                className="w-full resize-none border border-slate-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm hover:shadow-md transition-all duration-200 h-[52px]"
                                 rows={1}
                                 maxLength={500}
                             />
@@ -398,7 +494,7 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
                         <button
                             onClick={() => handleSendMessage(inputMessage)}
                             disabled={!inputMessage.trim()}
-                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg font-medium flex-shrink-0"
+                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg font-medium flex-shrink-0 h-[52px]"
                         >
                             전송
                         </button>

@@ -8,7 +8,7 @@
 
 ```env
 # Server Configuration
-PORT=3000
+PORT=8080
 NODE_ENV=development
 
 # Database Configuration
@@ -25,9 +25,18 @@ JWT_EXPIRES_IN=24h
 
 # Socket.IO Configuration
 SOCKET_CORS_ORIGIN=http://localhost:3001
-```
 
-### 2. MySQL 데이터베이스 설정
+### 2. Google Gemini API 설정 (무료)
+
+1. **Google AI Studio 접속**: https://makersuite.google.com/app/apikey
+2. **API 키 발급**: "Create API Key" 버튼 클릭
+3. **무료 크레딧**: 매월 15 requests/분 (매우 넉넉함!)
+4. **환경변수 설정**: `.env` 파일에 다음 추가:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+### 3. MySQL 데이터베이스 설정
 
 1. MySQL 서버가 실행 중인지 확인하세요
 2. 데이터베이스를 생성하세요:
@@ -36,13 +45,13 @@ SOCKET_CORS_ORIGIN=http://localhost:3001
    ```
 3. `.env` 파일에서 데이터베이스 연결 정보를 올바르게 설정하세요
 
-### 3. 의존성 설치
+### 4. 의존성 설치
 
 ```bash
 npm install
 ```
 
-### 4. 서버 실행
+### 5. 서버 실행
 
 개발 모드:
 ```bash
@@ -63,6 +72,7 @@ npm start
 ### 채팅방 관련
 - `GET /api/chat-rooms` - 모든 채팅방 목록 조회
 - `GET /api/chat-rooms/:roomId` - 특정 채팅방 정보 조회
+- `POST /api/chat-rooms/:roomId/analyze` - AI 대화 분석 및 답변 추천
 
 ### 메시지 관련
 - `GET /api/messages/:chatRoomId` - 특정 채팅방의 메시지 조회
@@ -72,6 +82,19 @@ npm start
 - `user_message` - 사용자 메시지 전송/수신
 - `join_room` - 채팅방 참여
 - `leave_room` - 채팅방 나가기
+
+## AI 기능
+
+### 대화 분석
+- **감정 분석**: 고객의 감정 상태 (긍정/부정/중립)
+- **긴급도 분석**: 문의의 긴급도 레벨
+- **카테고리 분류**: 문의 유형 분류
+- **키워드 추출**: 대화에서 주요 키워드 추출
+
+### 답변 추천
+- **매크로 추천**: 기존 매크로 중 적절한 것 추천
+- **AI 커스텀 답변**: AI가 생성한 맞춤형 답변
+- **이관 추천**: 전문 상담원 이관 필요 시 추천
 
 ## 데이터베이스 스키마 (ERD)
 
@@ -95,22 +118,4 @@ npm start
 - content (TEXT)
 - message_type (ENUM: TEXT, IMAGE)
 - read (BOOLEAN)
-- created_at
-
-## 서비스 구조
-
-### UserService
-- 사용자 생성, 조회, 토큰 업데이트 기능
-
-### ChatRoomService
-- 채팅방 생성, 조회, 삭제 기능
-
-### MessageService
-- 메시지 저장, 조회, 읽음 표시, 삭제 기능
-
-## 주의사항
-
-1. MySQL 서버가 실행 중이어야 합니다
-2. 데이터베이스 연결 정보가 올바르게 설정되어야 합니다
-3. 환경 변수 파일(.env)이 프로젝트 루트에 있어야 합니다
-4. 새로운 ERD에 따라 사용자별 채팅방이 자동으로 생성됩니다 
+- created_at 

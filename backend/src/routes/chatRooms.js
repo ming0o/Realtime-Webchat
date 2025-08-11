@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const chatRoomService = require("../services/chatRoomService");
 const messageService = require("../services/messageServiceMongo");
+const aiService = require("../services/aiService");
 
 /**
  * @swagger
@@ -541,5 +542,100 @@ router.post("/bot-response", async (req, res) => {
         res.status(500).json({ error: "챗봇 응답 생성 실패" });
     }
 });
+
+/**
+ * @swagger
+ * /api/chat-rooms/{roomId}/analyze:
+ *   post:
+ *     summary: AI 대화 분석 및 답변 추천
+ *     description: 채팅방의 대화 내용을 분석하여 상담사에게 적절한 답변을 추천합니다.
+ *     tags: [ChatRooms]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 채팅방 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               context:
+ *                 type: string
+ *                 description: 추가 컨텍스트 정보 (선택사항)
+ *     responses:
+ *       200:
+ *         description: AI 분석 결과
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 analysis:
+ *                   type: object
+ *                   properties:
+ *                     sentiment:
+ *                       type: string
+ *                       description: 고객 감정 상태
+ *                     urgency:
+ *                       type: string
+ *                       description: 긴급도 레벨
+ *                     category:
+ *                       type: string
+ *                       description: 문의 카테고리
+ *                 recommendations:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         enum: [macro, custom, transfer]
+ *                       content:
+ *                         type: string
+ *                       confidence:
+ *                         type: number
+ *                       reason:
+ *                         type: string
+ *       500:
+ *         description: 서버 오류
+ */
+// AI 대화 분석 및 답변 추천
+router.post("/:roomId/analyze", async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        const { context } = req.body;
+
+        // 1. 채팅방의 최근 메시지들 조회 (최근 10개)
+        const messages = await messageService.getMessagesByRoomId(roomId);
+        const recentMessages = messages.slice(-10);
+
+        // 2. 대화 내용을 AI 분석용 텍스트로 변환
+        const conversationText = recentMessages
+            .map(msg => `${msg.sender_type}: ${msg.content}`)
+            .join('\n');
+
+        // 3. AI 분석 서비스 호출
+        const analysisResult = await aiService.analyzeConversation(conversationText, context);
+
+        // 4. 분석 결과를 바탕으로 답변 추천 생성
+        const recommendations = await aiService.generateRecommendations(analysisResult, roomId);
+
+        res.json({
+            analysis: analysisResult,
+            recommendations
+        });
+
+    } catch (error) {
+        console.error('AI 분석 실패:', error);
+        res.status(500).json({ error: "AI 분석에 실패했습니다." });
+    }
+});
+
+
 
 module.exports = router;

@@ -61,6 +61,26 @@ export interface MacroTemplate {
     updated_at: string;
 }
 
+export interface ConversationAnalysis {
+    sentiment: 'positive' | 'negative' | 'neutral';
+    urgency: 'low' | 'medium' | 'high' | 'critical';
+    category: 'technical' | 'billing' | 'complaint' | 'inquiry' | 'general';
+    keywords: string[];
+    summary: string;
+}
+
+export interface AIRecommendation {
+    type: 'macro' | 'custom' | 'transfer';
+    content: string;
+    confidence: number;
+    reason: string;
+}
+
+export interface AIAnalysisResult {
+    analysis: ConversationAnalysis;
+    recommendations: AIRecommendation[];
+}
+
 export interface ChatRoomWithUser extends ChatRoom {
     user: User;
     messages: Message[];

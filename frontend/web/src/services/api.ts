@@ -75,6 +75,19 @@ export const api = {
         return response.json();
     },
 
+    // AI 대화 분석 및 답변 추천
+    async analyzeConversation(chatRoomId: number, context?: string) {
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${chatRoomId}/analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ context }),
+        });
+        if (!response.ok) throw new Error('AI 분석에 실패했습니다.');
+        return response.json();
+    },
+
     // 채팅방 상태 업데이트
     async updateChatRoomStatus(roomId: number, status: string) {
         const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${roomId}/status`, {
