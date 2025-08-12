@@ -47,7 +47,7 @@ export default function Home() {
       {/* 메인 컨텐츠 */}
       <main className="flex flex-1 overflow-hidden">
         {/* 왼쪽 패널 - 채팅 세션 목록 */}
-        <aside className="w-80 border-r border-gray-200 bg-white flex flex-col">
+        <aside className="w-96 border-r border-gray-200 bg-white flex flex-col">
           <ChatSessionList
             onSelectSession={handleSelectSession}
             selectedSessionId={selectedSession?.id}

@@ -636,6 +636,134 @@ router.post("/:roomId/analyze", async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/chat-rooms/{roomId}:
+ *   delete:
+ *     summary: 채팅방 삭제
+ *     description: 특정 채팅방을 삭제합니다.
+ *     tags: [ChatRooms]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 채팅방 ID
+ *     responses:
+ *       200:
+ *         description: 채팅방 삭제 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: 삭제 성공 여부
+ *                 message:
+ *                   type: string
+ *                   description: 성공 메시지
+ *       404:
+ *         description: 채팅방을 찾을 수 없음
+ *       500:
+ *         description: 서버 오류
+ */
+// 채팅방 삭제
+router.delete("/:roomId", async (req, res) => {
+    try {
+        const roomId = req.params.roomId;
+        const result = await chatRoomService.deleteChatRoom(roomId);
 
+        if (result) {
+            res.json({
+                success: true,
+                message: "채팅방이 성공적으로 삭제되었습니다."
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: "채팅방을 찾을 수 없습니다."
+            });
+        }
+    } catch (error) {
+        console.error('채팅방 삭제 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: "채팅방 삭제에 실패했습니다."
+        });
+    }
+});
+
+/**
+ * @swagger
+ * /api/chat-rooms/bulk-delete:
+ *   delete:
+ *     summary: 채팅방 일괄 삭제
+ *     description: 여러 채팅방을 일괄적으로 삭제합니다.
+ *     tags: [ChatRooms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roomIds
+ *             properties:
+ *               roomIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: 삭제할 채팅방 ID 목록
+ *     responses:
+ *       200:
+ *         description: 일괄 삭제 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: 삭제 성공 여부
+ *                 deletedCount:
+ *                   type: integer
+ *                   description: 삭제된 채팅방 수
+ *                 message:
+ *                   type: string
+ *                   description: 성공 메시지
+ *       400:
+ *         description: 잘못된 요청
+ *       500:
+ *         description: 서버 오류
+ */
+// 채팅방 일괄 삭제
+router.delete("/bulk-delete", async (req, res) => {
+    try {
+        const { roomIds } = req.body;
+
+        if (!roomIds || !Array.isArray(roomIds) || roomIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: "roomIds는 필수이며 배열이어야 합니다."
+            });
+        }
+
+        const deletedCount = await chatRoomService.deleteBulkChatRooms(roomIds);
+
+        res.json({
+            success: true,
+            deletedCount,
+            message: `${deletedCount}개의 채팅방이 삭제되었습니다.`
+        });
+    } catch (error) {
+        console.error('일괄 삭제 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: "채팅방 일괄 삭제에 실패했습니다."
+        });
+    }
+});
 
 module.exports = router;

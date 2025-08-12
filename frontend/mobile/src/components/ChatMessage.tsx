@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Message } from '../types';
 import QuickReplyButton from './QuickReplyButton';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ChatMessageProps {
     message: Message;
@@ -9,6 +10,7 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ message, onQuickReply }: ChatMessageProps) {
+    const { colors } = useTheme();
     const isUser = message.sender_type === 'USER';
     const isBot = message.sender_type === 'BOT';
     const isAdmin = message.sender_type === 'ADMIN';
@@ -70,27 +72,27 @@ export default function ChatMessage({ message, onQuickReply }: ChatMessageProps)
             <View style={styles.messageContentContainer}>
                 <View style={[
                     styles.messageBubble,
-                    isUser ? styles.userBubble :
-                        isBot ? styles.botBubble :
-                            isAdmin ? styles.adminBubble :
-                                isSystem ? styles.systemBubble : styles.botBubble
+                    isUser ? [styles.userBubble, { backgroundColor: colors.messageBubbleUser }] :
+                        isBot ? [styles.botBubble, { backgroundColor: colors.messageBubbleBot, borderColor: colors.border }] :
+                            isAdmin ? [styles.adminBubble, { backgroundColor: colors.messageBubbleAdmin }] :
+                                isSystem ? [styles.systemBubble, { backgroundColor: colors.surfaceSecondary }] : [styles.botBubble, { backgroundColor: colors.messageBubbleBot }]
                 ]}>
                     {getSenderLabel() !== '' && (
                         <Text style={[
                             styles.senderLabel,
-                            isBot ? styles.botLabel : styles.adminLabel
+                            isBot ? [styles.botLabel, { color: colors.textSecondary }] : [styles.adminLabel, { color: colors.textSecondary }]
                         ]}>
                             {getSenderLabel()}
                         </Text>
                     )}
                     <Text style={[
                         styles.messageText,
-                        isUser ? styles.userText :
-                            isSystem ? styles.systemText : styles.otherText
+                        isUser ? [styles.userText, { color: colors.messageTextUser }] :
+                            isSystem ? [styles.systemText, { color: colors.textSecondary }] : [styles.otherText, { color: colors.messageTextBot }]
                     ]}>
                         {message.content}
                     </Text>
-                    <Text style={styles.timestamp}>
+                    <Text style={[styles.timestamp, { color: colors.textTertiary }]}>
                         {getMessageTime()}
                     </Text>
                 </View>

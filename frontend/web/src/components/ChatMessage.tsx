@@ -49,12 +49,14 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
                 {/* Message Bubble */}
                 <div className={`relative ${isAdmin ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block px-4 py-3 rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg ${isAdmin
+                    <div className={`inline-block px-4 py-3 rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg max-w-xs lg:max-w-md ${isAdmin
                         ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-br-md'
                         : `${senderInfo.bgColor} ${senderInfo.textColor} rounded-bl-md border border-slate-200`
                         }`}>
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {message.content}
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
+                            <div className="line-clamp-6">
+                                {message.content}
+                            </div>
                         </div>
                     </div>
 

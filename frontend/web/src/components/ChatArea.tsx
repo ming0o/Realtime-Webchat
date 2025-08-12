@@ -345,7 +345,7 @@ export default function ChatArea({ selectedSessionId }: ChatAreaProps) {
 
             {/* Messages */}
             <main className="flex-1 overflow-y-auto px-6 py-4 bg-gradient-to-b from-white to-slate-50">
-                <div className="max-w-4xl mx-auto space-y-4">
+                <div className="max-w-4xl mx-auto space-y-4 overflow-x-hidden">
                     {Array.isArray(messages) && messages.map((message, index) => (
                         <ChatMessage
                             key={message._id || message.id || `msg-${index}-${message.createdAt || Date.now()}-${Math.random().toString(36).substr(2, 5)}`}

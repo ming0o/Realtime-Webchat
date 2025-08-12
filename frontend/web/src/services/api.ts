@@ -113,4 +113,26 @@ export const api = {
         if (!response.ok) throw new Error('채팅방 일괄 상태 업데이트에 실패했습니다.');
         return response.json();
     },
+
+    // 채팅방 삭제
+    async deleteChatRoom(roomId: number) {
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${roomId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('채팅방 삭제에 실패했습니다.');
+        return response.json();
+    },
+
+    // 채팅방 일괄 삭제
+    async deleteBulkChatRooms(roomIds: number[]) {
+        const response = await fetch(`${API_BASE_URL}/api/chat-rooms/bulk-delete`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ roomIds }),
+        });
+        if (!response.ok) throw new Error('채팅방 일괄 삭제에 실패했습니다.');
+        return response.json();
+    },
 }; 

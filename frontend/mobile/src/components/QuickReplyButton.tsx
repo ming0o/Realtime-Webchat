@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface QuickReplyButtonProps {
     text: string;
@@ -7,9 +8,14 @@ interface QuickReplyButtonProps {
 }
 
 export default function QuickReplyButton({ text, onPress }: QuickReplyButtonProps) {
+    const { colors } = useTheme();
+
     return (
-        <TouchableOpacity style={styles.button} onPress={onPress}>
-            <Text style={styles.buttonText}>{text}</Text>
+        <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primary }]}
+            onPress={onPress}
+        >
+            <Text style={[styles.buttonText, { color: colors.buttonText }]}>{text}</Text>
         </TouchableOpacity>
     );
 }

@@ -14,6 +14,7 @@ import { Message, ChatMode } from '../types';
 import { api } from '../services/api';
 import { socketService } from '../services/socket';
 import ChatMessage from '../components/ChatMessage';
+import { useTheme } from '../contexts/ThemeContext';
 
 // API 호출 함수들을 분리
 const chatApi = {
@@ -58,6 +59,7 @@ interface ChatScreenProps {
 }
 
 export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
+    const { colors, isDarkMode, toggleTheme } = useTheme();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -306,15 +308,17 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             {/* 헤더 */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>
-                    {chatMode === 'bot' ? '챗봇 상담' :
-                        chatMode === 'connecting' ? '상담원 연결 중...' : '실시간 상담'}
-                </Text>
+            <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                <View style={styles.headerContent}>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>
+                        {chatMode === 'bot' ? '챗봇 상담' :
+                            chatMode === 'connecting' ? '상담원 연결 중...' : '실시간 상담'}
+                    </Text>
+                </View>
             </View>
 
             {/* 메시지 목록 */}
@@ -323,27 +327,31 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                 data={messages.filter(Boolean)}
                 renderItem={renderMessage}
                 keyExtractor={(item, index) => (item && item.id !== undefined ? item.id.toString() : `msg-${index}`)}
-                style={styles.messageList}
+                style={[styles.messageList, { backgroundColor: colors.background }]}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
                 onLayout={() => flatListRef.current?.scrollToEnd()}
             />
 
             {/* 타이핑 인디케이터 */}
             {isTyping && (
-                <View style={styles.typingIndicator}>
+                <View style={[styles.typingIndicator, { backgroundColor: colors.surfaceSecondary, borderBottomColor: colors.border }]}>
                     <View style={styles.typingDots}>
-                        <View style={[styles.dot, styles.dot1]} />
-                        <View style={[styles.dot, styles.dot2]} />
-                        <View style={[styles.dot, styles.dot3]} />
+                        <View style={[styles.dot, styles.dot1, { backgroundColor: colors.primary }]} />
+                        <View style={[styles.dot, styles.dot2, { backgroundColor: colors.primary }]} />
+                        <View style={[styles.dot, styles.dot3, { backgroundColor: colors.primary }]} />
                     </View>
-                    <Text style={styles.typingText}>상담사가 입력중...</Text>
+                    <Text style={[styles.typingText, { color: colors.textSecondary }]}>상담사가 입력중...</Text>
                 </View>
             )}
 
             {/* 입력 영역 */}
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
                 <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, {
+                        backgroundColor: colors.inputBackground,
+                        borderColor: colors.inputBorder,
+                        color: colors.inputText
+                    }]}
                     value={inputText}
                     onChangeText={(text) => {
                         setInputText(text);
@@ -353,19 +361,34 @@ export default function ChatScreen({ chatRoomId, _userId }: ChatScreenProps) {
                         }
                     }}
                     placeholder={chatMode === 'agent' ? "상담원에게 메시지를 입력하세요..." : "메시지를 입력하세요..."}
+                    placeholderTextColor={colors.textTertiary}
                     multiline
                     maxLength={500}
                 />
                 <TouchableOpacity
-                    style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+                    style={[
+                        styles.sendButton,
+                        { backgroundColor: colors.buttonPrimary },
+                        (!inputText.trim() || isLoading) && { backgroundColor: colors.buttonSecondary }
+                    ]}
                     onPress={sendMessage}
                     disabled={!inputText.trim() || isLoading}
                 >
-                    <Text style={styles.sendButtonText}>
+                    <Text style={[styles.sendButtonText, { color: colors.buttonText }]}>
                         {isLoading ? '전송 중...' : '전송'}
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* 전환 버튼 - 좌측 하단 */}
+            <TouchableOpacity
+                style={[styles.switchButton, { backgroundColor: colors.buttonSecondary }]}
+                onPress={toggleTheme}
+            >
+                <Text style={[styles.switchButtonText, { color: colors.text }]}>
+                    {isDarkMode ? '☀️' : '🌙'}
+                </Text>
+            </TouchableOpacity>
         </KeyboardAvoidingView>
     );
 }
@@ -381,6 +404,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E5EA',
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 18,
@@ -465,5 +493,26 @@ const styles = StyleSheet.create({
     typingText: {
         fontSize: 14,
         color: '#333333',
+    },
+    switchButton: {
+        position: 'absolute',
+        bottom: 80,
+        left: 20,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    switchButtonText: {
+        fontSize: 20,
     },
 }); 

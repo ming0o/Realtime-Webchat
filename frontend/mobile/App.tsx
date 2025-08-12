@@ -9,6 +9,60 @@ import {
 } from 'react-native';
 import ChatScreen from './src/screens/ChatScreen';
 import { api } from './src/services/api';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+
+interface StartScreenProps {
+  nickname: string;
+  setNickname: (nickname: string) => void;
+  isLoading: boolean;
+  onStartChat: () => void;
+}
+
+const StartScreen: React.FC<StartScreenProps> = ({
+  nickname,
+  setNickname,
+  isLoading,
+  onStartChat
+}) => {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: colors.primary }]}>실시간 상담</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>궁금한 점을 물어보세요</Text>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.textInput, {
+              backgroundColor: colors.inputBackground,
+              borderColor: colors.inputBorder,
+              color: colors.inputText
+            }]}
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="닉네임을 입력하세요"
+            placeholderTextColor={colors.textTertiary}
+            maxLength={20}
+          />
+          <TouchableOpacity
+            style={[
+              styles.startButton,
+              { backgroundColor: colors.buttonPrimary },
+              (!nickname.trim() || isLoading) && { backgroundColor: colors.buttonSecondary }
+            ]}
+            onPress={onStartChat}
+            disabled={!nickname.trim() || isLoading}
+          >
+            <Text style={[styles.startButtonText, { color: colors.buttonText }]}>
+              {isLoading ? '시작 중...' : '채팅 시작'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default function App() {
   const [nickname, setNickname] = useState('');
@@ -39,35 +93,22 @@ export default function App() {
   };
 
   if (chatRoomId) {
-    return <ChatScreen chatRoomId={chatRoomId} />;
+    return (
+      <ThemeProvider>
+        <ChatScreen chatRoomId={chatRoomId} />
+      </ThemeProvider>
+    );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>실시간 상담</Text>
-        <Text style={styles.subtitle}>궁금한 점을 물어보세요</Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={nickname}
-            onChangeText={setNickname}
-            placeholder="닉네임을 입력하세요"
-            maxLength={20}
-          />
-          <TouchableOpacity
-            style={[styles.startButton, (!nickname.trim() || isLoading) && styles.startButtonDisabled]}
-            onPress={startChat}
-            disabled={!nickname.trim() || isLoading}
-          >
-            <Text style={styles.startButtonText}>
-              {isLoading ? '시작 중...' : '채팅 시작'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    <ThemeProvider>
+      <StartScreen
+        nickname={nickname}
+        setNickname={setNickname}
+        isLoading={isLoading}
+        onStartChat={startChat}
+      />
+    </ThemeProvider>
   );
 }
 

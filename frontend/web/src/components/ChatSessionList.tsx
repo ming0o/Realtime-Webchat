@@ -19,7 +19,6 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [selectedRooms, setSelectedRooms] = useState<Set<number>>(new Set());
     const [showBulkActions, setShowBulkActions] = useState(false);
-    const [bulkStatus, setBulkStatus] = useState<string>('접수');
     const [isUpdating, setIsUpdating] = useState(false);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -151,30 +150,31 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
         }
     };
 
-    const handleBulkStatusUpdate = async () => {
+    const handleBulkDelete = async () => {
         if (selectedRooms.size === 0) return;
+
+        const confirmDelete = window.confirm(`선택된 ${selectedRooms.size}개의 채팅방을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`);
+        if (!confirmDelete) return;
 
         setIsUpdating(true);
         try {
             const roomIds = Array.from(selectedRooms);
-            const result = await api.updateBulkChatRoomStatus(roomIds, bulkStatus);
 
-            // 로컬 상태 업데이트
-            setChatRooms(prev => prev.map(room =>
-                selectedRooms.has(room.id)
-                    ? { ...room, status: bulkStatus as '접수' | '응대' | '종료' | '보류' }
-                    : room
-            ));
+            // 백엔드 API 호출 - 일괄 삭제
+            const result = await api.deleteBulkChatRooms(roomIds);
+
+            // 로컬 상태에서 제거
+            setChatRooms(prev => prev.filter(room => !selectedRooms.has(room.id)));
 
             // 선택 해제
             setSelectedRooms(new Set());
             setShowBulkActions(false);
 
             // 성공 메시지 표시
-            alert(`${result.updatedCount}개의 채팅방 상태가 변경되었습니다.`);
+            alert(`${result.deletedCount}개의 채팅방이 삭제되었습니다.`);
         } catch (error) {
-            console.error('일괄 상태 변경 실패:', error);
-            alert('일괄 상태 변경에 실패했습니다.');
+            console.error('일괄 삭제 실패:', error);
+            alert('일괄 삭제에 실패했습니다.');
         } finally {
             setIsUpdating(false);
         }
@@ -337,7 +337,7 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
             </div>
 
             {showBulkActions && (
-                <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-red-50 to-red-100">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-semibold text-slate-700">
                             {selectedRooms.size}개 선택됨
@@ -352,28 +352,17 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
                             선택 해제
                         </button>
                     </div>
-                    <div className="flex items-center space-x-3">
-                        <select
-                            value={bulkStatus}
-                            onChange={(e) => setBulkStatus(e.target.value)}
-                            className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                        >
-                            <option value="접수">접수</option>
-                            <option value="응대">응대</option>
-                            <option value="종료">종료</option>
-                            <option value="보류">보류</option>
-                        </select>
+                    <div className="flex justify-start">
                         <button
-                            onClick={handleBulkStatusUpdate}
+                            onClick={handleBulkDelete}
                             disabled={isUpdating}
-                            className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                            className="px-6 py-3 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg font-medium"
                         >
-                            {isUpdating ? '변경 중...' : '일괄 변경'}
+                            {isUpdating ? '삭제 중...' : '선택된 채팅방 삭제'}
                         </button>
                     </div>
                 </div>
-            )
-            }
+            )}
 
             {/* 채팅방 목록 헤더 */}
             <div className="px-6 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-100 to-slate-200">
@@ -389,11 +378,11 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
             </div>
 
             {/* 채팅방 목록 */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 {filteredChatRooms.map((room) => (
                     <div
                         key={room.id}
-                        className={`p-4 border-b border-slate-100 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 transition-all duration-200 ${selectedSessionId === room.id
+                        className={`p-4 border-b border-slate-100 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 transition-all duration-200 overflow-x-hidden ${selectedSessionId === room.id
                             ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-sm'
                             : ''
                             }`}
@@ -429,7 +418,11 @@ export default function ChatSessionList({ onSelectSession, selectedSessionId }: 
                                         ) : null;
                                     })()}
                                 </div>
-                                <div className="text-sm text-slate-600 truncate">{room.last_message || '메시지가 없습니다'}</div>
+                                <div className="text-sm text-slate-600 truncate max-w-full overflow-hidden">
+                                    <span className="block truncate overflow-x-hidden">
+                                        {room.last_message || '메시지가 없습니다'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
